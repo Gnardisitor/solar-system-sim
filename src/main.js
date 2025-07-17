@@ -13,14 +13,56 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 
 const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26]
 
+// Controls
+const sliderStep = document.getElementById("step");
+const sliderStepTime = document.getElementById("stepTime");
+const runCheck = document.getElementById("run");
+
+// Text
+const stepText = document.getElementById("stepText");
+const stepTimeText = document.getElementById("stepTimeText");
+const runCheckText = document.getElementById("runText");
+let running = false;
+
 const clock = new THREE.Clock();
-const update = 0.025;
+let update = 0.025;
 let max = 10000;
 let meshes = [];
-const step = 0.5;
+let step = 0.5;
 let currentStep = 0;
 let time = 0;
 const method = 1;
+
+// Initialize inputs
+stepText.innerHTML = `${step} day/step`;
+stepTimeText.innerHTML = `${update} seconds between steps`;
+if (runCheck.checked) {
+    runCheckText.innerHTML = "Running";
+    running = true;
+} else {
+    runCheckText.innerHTML = "Paused";
+    running = false;
+}
+
+sliderStep.oninput = function() {
+    step = this.value;
+    stepText.innerHTML = `${step} day/step`;
+}
+
+sliderStepTime.oninput = function() {
+    update = this.value;
+    stepTimeText.innerHTML = `${update} seconds between steps`;
+}
+
+runCheck.onchange = () => {
+    if (runCheck.checked) {
+        runCheckText.innerHTML = "Running";
+        running = true;
+    } else {
+        runCheckText.innerHTML = "Paused";
+        running = false;
+    }
+}
 
 const ambientLight = new THREE.AmbientLight(0x404040, 10);
 scene.add(ambientLight);
@@ -34,10 +76,12 @@ await createModule().then((Module) => {
 });
 await initBodies(2000);
 
+const canvas = document.getElementById("canvas");
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+//renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(canvas.clientWidth, canvas.clientHeight);
 renderer.setAnimationLoop(animate);
-document.body.appendChild(renderer.domElement);
+canvas.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 camera.position.z = 5;
@@ -108,14 +152,16 @@ function simulate() {
 }
 
 function animate() {
-    time += clock.getDelta();
-    if (time >= update && currentStep < max) {
-        currentStep++;
-        simulate();
-        time = 0;
-    }
-    else if (currentStep >= max) {
-        console.log("Reached max number of steps!");
+    if (running) {
+        time += clock.getDelta();
+        if (time >= update && currentStep < max) {
+            currentStep++;
+            simulate();
+            time = 0;
+        }
+        else if (currentStep >= max) {
+            console.log("Reached max number of steps!");
+        }
     }
 
     controls.update();

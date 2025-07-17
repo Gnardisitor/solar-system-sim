@@ -9,13 +9,6 @@
 #define TIME	86400.0					// Conversion factor from s to d
 #define ACC		(TIME * TIME) / DIST	// Conversion factor from m/s^2 to AU/d^2
 
-// Constants for PEFRL
-#define XI		+0.1786178958448091E+00			// ξ
-#define LAMBDA	-0.2123418310626054E+00			// λ
-#define CHI		-0.6626458266981849E-01			// χ
-#define P1		(1.0 - (2.0 * LAMBDA)) * 0.5	// (1 - 2λ) / 2
-#define P2		1.0 - (2.0 * (CHI + XI))		// 1 - 2(χ + ξ)
-
 // Body struct and bodies
 typedef struct {
 	double mass;		// Mass
@@ -33,7 +26,7 @@ Body bodies[9];			// Array of all main 9 bodies in Solar System
 // Function prototypes
 void euler(double step);
 void verlet(double step);
-void pefrl(double step);
+void rk4(double step);
 
 /* Functions used in JavaScript code */
 
@@ -60,9 +53,11 @@ void simulate_step(int method, double step) {
 		case 1: // Verlet
 			verlet(step);
 			break;
-		case 2: // PEFRL
-			pefrl(step);
+		/*
+		case 2: // RK4
+			rk4(step);
 			break;
+		*/
 		default:
 			printf("Unknown method %d!\n", method);
 			break;
@@ -159,65 +154,5 @@ void verlet(double step) {
 		bodies[i].x = bodies[i].x + (0.5 * step * bodies[i].vx);
 		bodies[i].y = bodies[i].y + (0.5 * step * bodies[i].vy);
 		bodies[i].z = bodies[i].z + (0.5 * step * bodies[i].vz);
-	}
-}
-
-void pefrl(double step) {
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].x = bodies[i].x + (XI * step * bodies[i].vx);
-		bodies[i].y = bodies[i].y + (XI * step * bodies[i].vy);
-		bodies[i].z = bodies[i].z + (XI * step * bodies[i].vz);
-	}
-
-	set_acc();
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].vx = bodies[i].vx + (P1 * step * bodies[i].ax);
-		bodies[i].vy = bodies[i].vy + (P1 * step * bodies[i].ay);
-		bodies[i].vz = bodies[i].vz + (P1 * step * bodies[i].az);
-	}
-
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].x = bodies[i].x + (CHI * step * bodies[i].vx);
-		bodies[i].y = bodies[i].y + (CHI * step * bodies[i].vy);
-		bodies[i].z = bodies[i].z + (CHI * step * bodies[i].vz);
-	}
-
-	set_acc();
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].vx = bodies[i].vx + (LAMBDA * step * bodies[i].ax);
-		bodies[i].vy = bodies[i].vy + (LAMBDA * step * bodies[i].ay);
-		bodies[i].vz = bodies[i].vz + (LAMBDA * step * bodies[i].az);
-	}
-
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].x = bodies[i].x + (P2 * step * bodies[i].vx);
-		bodies[i].y = bodies[i].y + (P2 * step * bodies[i].vy);
-		bodies[i].z = bodies[i].z + (P2 * step * bodies[i].vz);
-	}
-
-	set_acc();
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].vx = bodies[i].vx + (LAMBDA * step * bodies[i].ax);
-		bodies[i].vy = bodies[i].vy + (LAMBDA * step * bodies[i].ay);
-		bodies[i].vz = bodies[i].vz + (LAMBDA * step * bodies[i].az);
-	}
-
-	for (unsigned int i = 0; i < SIZE; i++) {
-		bodies[i].x = bodies[i].x + (CHI * step * bodies[i].vx);
-		bodies[i].y = bodies[i].y + (CHI * step * bodies[i].vy);
-		bodies[i].z = bodies[i].z + (CHI * step * bodies[i].vz);
-	}
-
-	set_acc();
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].vx = bodies[i].vx + (P1 * step * bodies[i].ax);
-		bodies[i].vy = bodies[i].vy + (P1 * step * bodies[i].ay);
-		bodies[i].vz = bodies[i].vz + (P1 * step * bodies[i].az);
-	}
-
-	for (int i = 0; i < SIZE; i++) {
-		bodies[i].x = bodies[i].x + (XI * step * bodies[i].vx);
-		bodies[i].y = bodies[i].y + (XI * step * bodies[i].vy);
-		bodies[i].z = bodies[i].z + (XI * step * bodies[i].vz);
 	}
 }
