@@ -8,7 +8,7 @@ src/nbody.js
 src/nbody.wasm
 
 # Settings files
-settings.json
+.vscode/
 
 # Instructions on compilation
 compile.txt

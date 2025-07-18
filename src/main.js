@@ -1,12 +1,15 @@
+// Import Three.js
 import * as THREE from "three"
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 
-import createModule from "./nbody.js"
-let initBody;
-let simulateStep;
-let getX;
-let getY;
-let getZ;
+// Import Emscripten module
+import createModule from "./nbody.js"   // The Emscripten module is compiled from nbody.c
+
+// Create variables for the Emscripten module functions
+let initBody;           // Takes id, mass, x, y, z, vx, vy, vz, returns nothing
+let simulateStep;       // Takes method (0: Euler, 1: Verlet, 2: RK4), and step size, returns nothing
+let getX, getY, getZ;   // Takes id, returns x, y, z
+let free;               // Frees all memory allocated by the Emscripten module 
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -31,7 +34,7 @@ let meshes = [];
 let step = 0.5;
 let currentStep = 0;
 let time = 0;
-const method = 1;
+const method = 2;
 
 // Initialize inputs
 stepText.innerHTML = `${step} day/step`;
@@ -43,6 +46,7 @@ if (runCheck.checked) {
     runCheckText.innerHTML = "Paused";
     running = false;
 }
+
 
 sliderStep.oninput = function() {
     step = this.value;
@@ -73,6 +77,7 @@ await createModule().then((Module) => {
     getX = Module.cwrap('get_x', 'number', ['number']);
     getY = Module.cwrap('get_y', 'number', ['number']);
     getZ = Module.cwrap('get_z', 'number', ['number']);
+    free = Module.cwrap('free_all', null, []);
 });
 await initBodies(2000);
 
@@ -160,6 +165,7 @@ function animate() {
             time = 0;
         }
         else if (currentStep >= max) {
+            free();  // Free memory if max steps reached
             console.log("Reached max number of steps!");
         }
     }
