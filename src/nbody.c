@@ -106,17 +106,7 @@ double *simulate_all(method_type method, unsigned int total_steps, double step) 
 	// Simulate for total_steps
 	for (unsigned int t = 1; t < total_steps; t++) {
 		// Simulate one step using the specified method
-		switch (method) {
-			case EULER:
-				euler(step);
-				break;
-			case VERLET:
-				verlet(step);
-				break;
-			case RK4:
-				rk4(step);
-				break;
-		}
+		simulate_step(method, step);
 
 		// Store positions in history
 		for (int i = 0; i < SIZE; i++) {
@@ -299,7 +289,7 @@ void rk4(double step) {
 		rk4_init = TRUE;	// Set flag to true
 	}
 
-	// Assign values of y_1
+	// Set y_1 (current position and velocity)
 	for (int i = 0; i < SIZE; i++) {
 		y_1[6 * i + 0] = bodies[i].x;
 		y_1[6 * i + 1] = bodies[i].y;
@@ -309,48 +299,46 @@ void rk4(double step) {
 		y_1[6 * i + 5] = bodies[i].vz;
 	}
 
-	// Compute k_1
+	// Compute k_1 = f(y_1)
 	for (int i = 0; i < SIZE; i++) {
 		f(y_1);
-		for (int j = 0; j < 6; j++) k_1[6 * i + j] = tmp[6 * i + j];
+		for (int j = 0; j < 6; j++) k_1[6 * i + j] = tmp[6 * i + j];									// Set k_1			
 	}
 
-	// Set y_2 = y + step * k_1 / 2 (using tmp)
+	// Compute k_2 = f(y_2), where y_2 = y_1 + step * k_1 / 2
 	for (int i = 0; i < SIZE; i++) {
-		for (int j = 0; j < 6; j++) y_2[6 * i + j] = y_1[6 * i + j] + (0.5 * step * k_1[6 * i + j]);
+		for (int j = 0; j < 6; j++) y_2[6 * i + j] = y_1[6 * i + j] + (0.5 * step * k_1[6 * i + j]);	// Set y_2
 	}
-
-	// Compute k_2
 	for (int i = 0; i < SIZE; i++) {
 		f(y_2);
-		for (int j = 0; j < 6; j++) k_2[6 * i + j] = tmp[6 * i + j];
+		for (int j = 0; j < 6; j++) k_2[6 * i + j] = tmp[6 * i + j];									// Set k_2
 	}
 
-	// Set y_3 = y + step * k_2 / 2 (using tmp)
+	// Compute k_3 = f(y_3), where y_3 = y_1 + step * k_2 / 2
 	for (int i = 0; i < SIZE; i++) {
-		for (int j = 0; j < 6; j++) y_3[6 * i + j] = y_1[6 * i + j] + (0.5 * step * k_2[6 * i + j]);
+		for (int j = 0; j < 6; j++) y_3[6 * i + j] = y_1[6 * i + j] + (0.5 * step * k_2[6 * i + j]);	// Set y_3
 	}
-
-	// Compute k_3
 	for (int i = 0; i < SIZE; i++) {
 		f(y_3);
-		for (int j = 0; j < 6; j++) k_3[6 * i + j] = tmp[6 * i + j];
+		for (int j = 0; j < 6; j++) k_3[6 * i + j] = tmp[6 * i + j];									// Set k_3
 	}
 
-	// Set y_4 = y + step * k_3 (using tmp)
+	// Compute k_4 = f(y_4), where y_4 = y_1 + step * k_3
 	for (int i = 0; i < SIZE; i++) {
-		for (int j = 0; j < 6; j++) y_4[6 * i + j] = y_1[6 * i + j] + (step * k_3[6 * i + j]);
+		for (int j = 0; j < 6; j++) y_4[6 * i + j] = y_1[6 * i + j] + (step * k_3[6 * i + j]);			// Set y_4
 	}
-
-	// Compute k_4
 	for (int i = 0; i < SIZE; i++) {
 		f(y_4);
-		for (int j = 0; j < 6; j++) k_4[6 * i + j] = tmp[6 * i + j];
+		for (int j = 0; j < 6; j++) k_4[6 * i + j] = tmp[6 * i + j];									// Set k_4
 	}
 
-	// Compute weighted average
+	// Compute weighted average y_n = y_1 + 1 / 6 * step * (k_1 + 2 * k_2 + 2 * k_3 + k_4)
+	double avg;
 	for (int i = 0; i < SIZE; i++) {
-		for (int j = 0; j < 6; j++) y_n[6 * i + j] = y_1[6 * i + j] + (step / 6.0) * (k_1[6 * i + j] + (2.0 * k_2[6 * i + j]) + (2.0 * k_3[6 * i + j]) + k_4[6 * i + j]);
+		for (int j = 0; j < 6; j++) {
+			avg = (step / 6.0) * (k_1[6 * i + j] + (2.0 * k_2[6 * i + j]) + (2.0 * k_3[6 * i + j]) + k_4[6 * i + j]);
+			y_n[6 * i + j] = y_1[6 * i + j] + avg;
+		}
 	}
 
 	// Set new position, velocity, and history

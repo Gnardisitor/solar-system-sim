@@ -11,9 +11,6 @@ let simulateStep;       // Takes method (0: Euler, 1: Verlet, 2: RK4), and step 
 let getX, getY, getZ;   // Takes id, returns x, y, z
 let free;               // Frees all memory allocated by the Emscripten module 
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
 const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26]
 
 // Controls
@@ -29,12 +26,15 @@ let running = false;
 
 const clock = new THREE.Clock();
 let update = 0.025;
+// TODO: Remove max number of steps (not needed for real-time simulation)
 let max = 10000;
 let meshes = [];
 let step = 0.5;
 let currentStep = 0;
 let time = 0;
-const method = 2;
+// TODO: Add input to select method
+// 0: Euler, 1: Verlet, 2: RK4
+const method = 2; 
 
 // Initialize inputs
 stepText.innerHTML = `${step} day/step`;
@@ -68,8 +68,25 @@ runCheck.onchange = () => {
     }
 }
 
+const canvas = document.getElementById("canvas");
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+renderer.setAnimationLoop(animate);
+canvas.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+const controls = new OrbitControls(camera, renderer.domElement);
+camera.position.z = 5;
+
 const ambientLight = new THREE.AmbientLight(0x404040, 10);
 scene.add(ambientLight);
+
+window.addEventListener("resize", () => {
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.updateProjectionMatrix();
+});
 
 await createModule().then((Module) => {
     initBody = Module.cwrap('init_body', null, ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']);
@@ -81,24 +98,12 @@ await createModule().then((Module) => {
 });
 await initBodies(2000);
 
-const canvas = document.getElementById("canvas");
-const renderer = new THREE.WebGLRenderer();
-//renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-renderer.setAnimationLoop(animate);
-canvas.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-camera.position.z = 5;
-
 async function parseData(id, year) {
     const proxy = "https://proxy.corsfix.com/?";
-    //const proxy =  "http://localhost:3000/jpl?url=";
     const url = `https://ssd.jpl.nasa.gov/api/horizons.api?format=text&COMMAND='${id}'&CENTER='@0'&CSV_FORMAT='YES'&EPHEM_TYPE='VECTOR'&VEC_TABLE='2'&OUT_UNITS='AU-D'&START_TIME='${year}-01-01'&STOP_TIME='${year}-01-02'&STEP_SIZE='2%20d'`
     const start = "$$SOE";
     const end = "$$EOE";
 
-    //const response = await fetch(proxy + encodeURIComponent(url));
     const response = await fetch(proxy + url);
     const data = await response.text();
 
@@ -129,7 +134,7 @@ async function batchFetch(ids, year, batchSize) {
 async function initBodies(year) {
     const ids = [10, 199, 299, 399, 499, 599, 699, 799, 899];
     const colors = [0xffff00, 0x666699, 0x993333, 0x0099ff, 0xcc3300, 0x996600, 0xffcc99, 0x99ccff, 0x6666ff]
-    const geometry = new THREE.SphereGeometry(0.2, 10, 10);
+    const geometry = new THREE.SphereGeometry(0.2, 25, 25);
 
     const vectors = await batchFetch(ids, year, 2);
     for (let i = 0; i < ids.length; i++) {
@@ -137,10 +142,12 @@ async function initBodies(year) {
         const vec = vectors[i];
         console.log(vec);
         scene.add(meshes[i]);
-        meshes[i].position.set(...vec[0]);
+        // Since Three.js uses a different coordinate system than the usual scientific coordinate system like
+        // matlab and matplotlib, the coordinates need to be adjusted from (x, y, z) to (x, z, y).
+        meshes[i].position.set(vec[0][0], vec[0][2], vec[0][1]);
 
         // Initialize the body in the C module
-        initBody(i, masses[i], vec[0][0], vec[0][1], vec[0][2], vec[1][0], vec[1][1], vec[1][2]);
+        initBody(i, masses[i], vec[0][0], vec[0][2], vec[0][1], vec[1][0], vec[1][2], vec[1][1]);
     }
 }
 
