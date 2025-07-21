@@ -15,12 +15,14 @@
                 <option value="verlet">Position Verlet</option>
                 <option value="rk4">Runge-Kutta 4th Order</option>
             </select>
+            <label for="yearInput">Year:</label>
+            <input type="number" id="yearInput" min="1820" max="2020" value="2000">
+            <button id="setYear">Set Year</button>
             <input type="range" min="0.1" max="5" value="0.5" step="0.1" class="slider" id="step">
             <input type="range" min="0.01" max="1" value="0.05" step="0.01" class="slider" id="stepTime">
             <input type="checkbox" id="run" unchecked>
         </div>
         <div id="info">
-            <p class="text" id="methodText"></p>
             <p class="text" id="stepText"></p>
             <p class="text" id="stepTimeText"></p>
             <p class="text" id="runText"></p>

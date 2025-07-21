@@ -45,7 +45,7 @@ void rk4(double step);
 /* Functions used in JavaScript code */
 
 void init_body(int body, double mass, double x, double y, double z, double vx, double vy, double vz) {
-	bodies[body].mass = mass;	// Set mass of body
+	bodies[body].mass = mass;
 
 	// Set position vector
 	bodies[body].x = x;

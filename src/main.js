@@ -25,7 +25,10 @@ const runCheckText = document.getElementById("runText");
 let running = false;
 
 // Initialize date
-let wantedYear = 2000;  // Default year
+const yearInput = document.getElementById("yearInput");
+const setYear = document.getElementById("setYear");
+
+let wantedYear = yearInput.value;
 let dayText = "01";
 let monthText = "01";
 let yearText = wantedYear.toString();
@@ -45,9 +48,7 @@ let time = 0;
 // 0: Euler, 1: Verlet, 2: RK4
 const methodDict = {"euler": 0, "verlet": 1, "rk4": 2};
 const methodSelect = document.getElementById("method");
-const methodText = document.getElementById("methodText");
 let method = methodDict[methodSelect.value];
-methodText.innerHTML = `Method: ${methodSelect.value}`; 
 
 // Initialize inputs
 stepText.innerHTML = `${step} day/step`;
@@ -62,7 +63,6 @@ if (runCheck.checked) {
 
 methodSelect.onchange = function() {
     method = methodDict[this.value];
-    methodText.innerHTML = `Method: ${this.value}`;
 }
 
 sliderStep.oninput = function() {
@@ -116,8 +116,21 @@ await createModule().then((Module) => {
     free = Module.cwrap('free_all', null, []);
 });
 await initBodies(wantedYear);
-isLoaded = true;
 
+setYear.onclick = async function() {
+    isLoaded = false;
+    wantedYear = yearInput.value;
+    meshes.forEach(mesh => scene.remove(mesh));
+    meshes = [];
+    dayText = "01";
+    monthText = "01";
+    yearText = wantedYear.toString();
+    date.setUTCFullYear(wantedYear, 0, 1); // Set date to January 1st of the wanted year
+    dateText.innerHTML = `Date: ${dayText}-${monthText}-${yearText} UTC`;
+    await initBodies(wantedYear);
+}
+
+/*
 async function parseData(id, year) {
     const proxy = "https://proxy.corsfix.com/?";
     const url = `https://ssd.jpl.nasa.gov/api/horizons.api?format=text&COMMAND='${id}'&CENTER='@0'&CSV_FORMAT='YES'&EPHEM_TYPE='VECTOR'&VEC_TABLE='2'&OUT_UNITS='AU-D'&START_TIME='${year}-01-01'&STOP_TIME='${year}-01-02'&STEP_SIZE='2%20d'`
@@ -150,25 +163,31 @@ async function batchFetch(ids, year, batchSize) {
     }
     return results;
 }
+*/
 
 async function initBodies(year) {
-    const ids = [10, 199, 299, 399, 499, 599, 699, 799, 899];
+    //const ids = [10, 199, 299, 399, 499, 599, 699, 799, 899];
     const colors = [0xffff00, 0x666699, 0x993333, 0x0099ff, 0xcc3300, 0x996600, 0xffcc99, 0x99ccff, 0x6666ff]
     const geometry = new THREE.SphereGeometry(0.2, 25, 25);
 
-    const vectors = await batchFetch(ids, year, 2);
-    for (let i = 0; i < ids.length; i++) {
+    //const vectors = await batchFetch(ids, year, 2);
+    const response = await fetch("/api.json");
+    const data = await response.json();
+    const vectors = data[year];
+
+    for (let i = 0; i < 9; i++) {
         meshes.push(new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: colors[i]})));
         const vec = vectors[i];
         console.log(vec);
         scene.add(meshes[i]);
         // Since Three.js uses a different coordinate system than the usual scientific coordinate system like
         // matlab and matplotlib, the coordinates need to be adjusted from (x, y, z) to (x, z, y).
-        meshes[i].position.set(vec[0][0], vec[0][2], vec[0][1]);
+        meshes[i].position.set(vec[0], vec[2], vec[1]);
 
         // Initialize the body in the C module
-        initBody(i, masses[i], vec[0][0], vec[0][2], vec[0][1], vec[1][0], vec[1][2], vec[1][1]);
+        initBody(i, masses[i], vec[0], vec[2], vec[1], vec[3], vec[5], vec[4]);
     }
+    isLoaded = true;
 }
 
 function simulate() {
