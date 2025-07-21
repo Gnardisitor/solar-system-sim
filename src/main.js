@@ -24,6 +24,15 @@ const stepTimeText = document.getElementById("stepTimeText");
 const runCheckText = document.getElementById("runText");
 let running = false;
 
+// Initialize date
+let wantedYear = 2000;  // Default year
+let dayText = "01";
+let monthText = "01";
+let yearText = wantedYear.toString();
+const date = new Date(`01-01-${wantedYear}`);
+const dateText = document.getElementById("dateText");
+dateText.innerHTML = `Date: ${dayText}-${monthText}-${yearText} UTC`;
+
 const clock = new THREE.Clock();
 let update = 0.025;
 // TODO: Remove max number of steps (not needed for real-time simulation)
@@ -34,7 +43,11 @@ let currentStep = 0;
 let time = 0;
 // TODO: Add input to select method
 // 0: Euler, 1: Verlet, 2: RK4
-const method = 2; 
+const methodDict = {"euler": 0, "verlet": 1, "rk4": 2};
+const methodSelect = document.getElementById("method");
+const methodText = document.getElementById("methodText");
+let method = methodDict[methodSelect.value];
+methodText.innerHTML = `Method: ${methodSelect.value}`; 
 
 // Initialize inputs
 stepText.innerHTML = `${step} day/step`;
@@ -47,6 +60,10 @@ if (runCheck.checked) {
     running = false;
 }
 
+methodSelect.onchange = function() {
+    method = methodDict[this.value];
+    methodText.innerHTML = `Method: ${this.value}`;
+}
 
 sliderStep.oninput = function() {
     step = this.value;
@@ -88,6 +105,8 @@ window.addEventListener("resize", () => {
     camera.updateProjectionMatrix();
 });
 
+// Make sure everything is loaded before starting the simulation
+let isLoaded = false;
 await createModule().then((Module) => {
     initBody = Module.cwrap('init_body', null, ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']);
     simulateStep = Module.cwrap('simulate_step', null, ['number', 'number']);
@@ -96,7 +115,8 @@ await createModule().then((Module) => {
     getZ = Module.cwrap('get_z', 'number', ['number']);
     free = Module.cwrap('free_all', null, []);
 });
-await initBodies(2000);
+await initBodies(wantedYear);
+isLoaded = true;
 
 async function parseData(id, year) {
     const proxy = "https://proxy.corsfix.com/?";
@@ -161,10 +181,15 @@ function simulate() {
         console.log(`Body ${i} new position: (${x}, ${y}, ${z})`);
         meshes[i].position.set(x, y, z);
     }
+    date.setTime(date.getTime() + (step * 86400 * 1000)); // Convert step from days to milliseconds
+    dayText = String(date.getUTCDate()).padStart(2, '0');
+    monthText = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed in JavaScript
+    yearText = date.getUTCFullYear().toString();
+    dateText.innerHTML = `Date: ${dayText}-${monthText}-${yearText} UTC`;
 }
 
 function animate() {
-    if (running) {
+    if (running && isLoaded) {
         time += clock.getDelta();
         if (time >= update && currentStep < max) {
             currentStep++;
