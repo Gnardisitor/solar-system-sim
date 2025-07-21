@@ -1,9 +1,9 @@
 // Import Three.js
-import * as THREE from "three"
-import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
+import * as THREE from "three";
+import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 
 // Import Emscripten module
-import createModule from "./nbody.js"   // The Emscripten module is compiled from nbody.c
+import createModule from "./nbody.js";   // The Emscripten module is compiled from nbody.c
 
 // Create variables for the Emscripten module functions
 let initBody;           // Takes id, mass, x, y, z, vx, vy, vz, returns nothing
@@ -11,7 +11,7 @@ let simulateStep;       // Takes method (0: Euler, 1: Verlet, 2: RK4), and step 
 let getX, getY, getZ;   // Takes id, returns x, y, z
 let free;               // Frees all memory allocated by the Emscripten module 
 
-const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26]
+const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26];
 
 // Controls
 const sliderStep = document.getElementById("step");
@@ -21,7 +21,6 @@ const runCheck = document.getElementById("run");
 // Text
 const stepText = document.getElementById("stepText");
 const stepTimeText = document.getElementById("stepTimeText");
-const runCheckText = document.getElementById("runText");
 let running = false;
 
 // Initialize date
@@ -34,18 +33,14 @@ let monthText = "01";
 let yearText = wantedYear.toString();
 const date = new Date(`01-01-${wantedYear}`);
 const dateText = document.getElementById("dateText");
-dateText.innerHTML = `Date: ${dayText}-${monthText}-${yearText} UTC`;
+dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
 
 const clock = new THREE.Clock();
 let update = 0.025;
-// TODO: Remove max number of steps (not needed for real-time simulation)
-let max = 10000;
 let meshes = [];
 let step = 0.5;
 let currentStep = 0;
 let time = 0;
-// TODO: Add input to select method
-// 0: Euler, 1: Verlet, 2: RK4
 const methodDict = {"euler": 0, "verlet": 1, "rk4": 2};
 const methodSelect = document.getElementById("method");
 let method = methodDict[methodSelect.value];
@@ -54,10 +49,8 @@ let method = methodDict[methodSelect.value];
 stepText.innerHTML = `${step} day/step`;
 stepTimeText.innerHTML = `${update} seconds between steps`;
 if (runCheck.checked) {
-    runCheckText.innerHTML = "Running";
     running = true;
 } else {
-    runCheckText.innerHTML = "Paused";
     running = false;
 }
 
@@ -76,13 +69,8 @@ sliderStepTime.oninput = function() {
 }
 
 runCheck.onchange = () => {
-    if (runCheck.checked) {
-        runCheckText.innerHTML = "Running";
-        running = true;
-    } else {
-        runCheckText.innerHTML = "Paused";
-        running = false;
-    }
+    if (runCheck.checked) running = true;
+    else running = false;
 }
 
 const canvas = document.getElementById("canvas");
@@ -119,6 +107,7 @@ await initBodies(wantedYear);
 
 setYear.onclick = async function() {
     isLoaded = false;
+    free(); // Free the memory allocated by the Emscripten module
     wantedYear = yearInput.value;
     meshes.forEach(mesh => scene.remove(mesh));
     meshes = [];
@@ -126,47 +115,11 @@ setYear.onclick = async function() {
     monthText = "01";
     yearText = wantedYear.toString();
     date.setUTCFullYear(wantedYear, 0, 1); // Set date to January 1st of the wanted year
-    dateText.innerHTML = `Date: ${dayText}-${monthText}-${yearText} UTC`;
+    dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
     await initBodies(wantedYear);
 }
 
-/*
-async function parseData(id, year) {
-    const proxy = "https://proxy.corsfix.com/?";
-    const url = `https://ssd.jpl.nasa.gov/api/horizons.api?format=text&COMMAND='${id}'&CENTER='@0'&CSV_FORMAT='YES'&EPHEM_TYPE='VECTOR'&VEC_TABLE='2'&OUT_UNITS='AU-D'&START_TIME='${year}-01-01'&STOP_TIME='${year}-01-02'&STEP_SIZE='2%20d'`
-    const start = "$$SOE";
-    const end = "$$EOE";
-
-    const response = await fetch(proxy + url);
-    const data = await response.text();
-
-    let vecData = data.split(start)[1];
-    vecData = vecData.split(end)[0];
-    vecData = vecData.split(",");
-
-    let pos = vecData.slice(2, 5).map(e => scientificNotation(e));
-    let vel = vecData.slice(5, 8).map(e => scientificNotation(e));
-    return [pos, vel];
-}
-
-function scientificNotation(num) {
-    const nums = num.trim().split("E");
-    return Number(nums[0]) * 10 ** Number(nums[1]);
-}
-
-async function batchFetch(ids, year, batchSize) {
-    const results = [];
-    for (let i = 0; i < ids.length; i += batchSize) {
-        const batch = ids.slice(i, i + batchSize);
-        const batchResults = await Promise.all(batch.map(id => parseData(id, year)));
-        results.push(...batchResults);
-    }
-    return results;
-}
-*/
-
 async function initBodies(year) {
-    //const ids = [10, 199, 299, 399, 499, 599, 699, 799, 899];
     const colors = [0xffff00, 0x666699, 0x993333, 0x0099ff, 0xcc3300, 0x996600, 0xffcc99, 0x99ccff, 0x6666ff]
     const geometry = new THREE.SphereGeometry(0.2, 25, 25);
 
@@ -200,24 +153,22 @@ function simulate() {
         console.log(`Body ${i} new position: (${x}, ${y}, ${z})`);
         meshes[i].position.set(x, y, z);
     }
+
+    // Update the date
     date.setTime(date.getTime() + (step * 86400 * 1000)); // Convert step from days to milliseconds
     dayText = String(date.getUTCDate()).padStart(2, '0');
     monthText = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed in JavaScript
     yearText = date.getUTCFullYear().toString();
-    dateText.innerHTML = `Date: ${dayText}-${monthText}-${yearText} UTC`;
+    dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
 }
 
 function animate() {
     if (running && isLoaded) {
         time += clock.getDelta();
-        if (time >= update && currentStep < max) {
+        if (time >= update) {
             currentStep++;
             simulate();
             time = 0;
-        }
-        else if (currentStep >= max) {
-            free();  // Free memory if max steps reached
-            console.log("Reached max number of steps!");
         }
     }
 
