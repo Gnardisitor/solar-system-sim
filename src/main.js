@@ -144,7 +144,7 @@ async function initBodies(year) {
 
     // These are based on the real values, but modified to fit the simulation scale, therefore not accurate
     const diameters = [13914, 4879, 12104, 12756, 6792, 14290, 12050, 25110, 24520];
-    const sizes = diameters.map(diameter => diameter / 149600);
+    const sizes = diameters.map(diameter => 2 * diameter / 149600);
 
     const response = await fetch("/api.json");
     const data = await response.json();

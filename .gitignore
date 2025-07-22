@@ -1,11 +1,12 @@
 # NPM packages
-package.json
-package-lock.json
 node_modules/
 
 # Compiled files
 src/nbody.js
 src/nbody.wasm
+
+# Build output
+dist/
 
 # Settings files
 .vscode/
