@@ -1,4 +1,4 @@
 // vite.config.js
 export default {
-    //base: '/solar-system-sim/'  // For GitHub Pages deployment
+    base: '/solar-system-sim/'  // For GitHub Pages deployment
 }

@@ -5,6 +5,8 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 // Import Emscripten module
 import createModule from "./nbody.js";   // The Emscripten module is compiled from nbody.c
 
+const base = import.meta.env.BASE_URL;
+
 // Create variables for the Emscripten module functions
 let initBody;           // Takes id, mass, x, y, z, vx, vy, vz, returns nothing
 let simulateStep;       // Takes method (0: Euler, 1: Verlet, 2: RK4), and step size, returns nothing
@@ -68,10 +70,10 @@ sliderStepTime.oninput = function() {
 runCheck.onclick = () => {
     running = !running;
     if (running) {
-        runIcon.src = "/icons/pause.svg";
+        runIcon.src = `${base}/icons/pause.svg`;
     }
     else {
-        runIcon.src = "/icons/play.svg";
+        runIcon.src = `${base}/icons/play.svg`;
     }
 }
 
@@ -87,7 +89,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 camera.position.z = 5;
 
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load('/textures/stars.jpg', (texture) => {
+textureLoader.load(`${base}/textures/stars.jpg`, (texture) => {
     const image = texture.image;
     const canvas = document.createElement('canvas');
     canvas.width = image.width;
@@ -146,13 +148,13 @@ async function initBodies(year) {
     const diameters = [13914, 4879, 12104, 12756, 6792, 14290, 12050, 25110, 24520];
     const sizes = diameters.map(diameter => 2 * diameter / 149600);
 
-    const response = await fetch("/api.json");
+    const response = await fetch(`${base}api.json`);
     const data = await response.json();
     const vectors = data[year];
 
     for (let i = 0; i < 9; i++) {
         const geometry = new THREE.SphereGeometry(sizes[i], 25, 25);
-        const texture = textureLoader.load(`/textures/${names[i]}.jpg`);
+        const texture = textureLoader.load(`${base}/textures/${names[i]}.jpg`);
         let material;
         if (i === 0) {  // Sun
             material = new THREE.MeshStandardMaterial({
