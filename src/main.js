@@ -21,6 +21,7 @@ const runCheck = document.getElementById("run");
 // Text
 const stepText = document.getElementById("stepText");
 const stepTimeText = document.getElementById("stepTimeText");
+const runIcon = document.getElementById("runIcon");
 let running = false;
 
 // Initialize date
@@ -46,13 +47,9 @@ const methodSelect = document.getElementById("method");
 let method = methodDict[methodSelect.value];
 
 // Initialize inputs
-stepText.innerHTML = `${step} day/step`;
-stepTimeText.innerHTML = `${update} seconds between steps`;
-if (runCheck.checked) {
-    running = true;
-} else {
-    running = false;
-}
+stepText.innerHTML = `${step} days/step`;
+stepTimeText.innerHTML = `${update} sec/step`;
+running = false;
 
 methodSelect.onchange = function() {
     method = methodDict[this.value];
@@ -65,12 +62,17 @@ sliderStep.oninput = function() {
 
 sliderStepTime.oninput = function() {
     update = this.value;
-    stepTimeText.innerHTML = `${update} seconds between steps`;
+    stepTimeText.innerHTML = `${update} sec/step`;
 }
 
-runCheck.onchange = () => {
-    if (runCheck.checked) running = true;
-    else running = false;
+runCheck.onclick = () => {
+    running = !running;
+    if (running) {
+        runIcon.src = "/icons/pause.svg";
+    }
+    else {
+        runIcon.src = "/icons/play.svg";
+    }
 }
 
 const canvas = document.getElementById("canvas");
