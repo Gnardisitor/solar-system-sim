@@ -26,9 +26,7 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
 
       - name: Compile C code
-        run: emcc src/nbody.c -o src/nbody.js -O3 \
-              -s EXPORTED_FUNCTIONS=_init_body,_simulate_step,_simulate_all,_get_x,_get_y,_get_z,_free_all \
-              -s EXPORTED_RUNTIME_METHODS=cwrap -s MODULARIZE=1 -s EXPORT_ES6=1 -s 'ENVIRONMENT=web'
+        run: emcc src/nbody.c -o src/nbody.js -O3 -s EXPORTED_FUNCTIONS=_init_body,_simulate_step,_simulate_all,_get_x,_get_y,_get_z,_free_all -s EXPORTED_RUNTIME_METHODS=cwrap -s MODULARIZE=1 -s EXPORT_ES6=1 -s 'ENVIRONMENT=web'
 
       - name: Setup Node
         uses: actions/setup-node@v4
