@@ -86,6 +86,24 @@ const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clien
 const controls = new OrbitControls(camera, renderer.domElement);
 camera.position.z = 5;
 
+const textureLoader = new THREE.TextureLoader();
+textureLoader.load('/textures/stars.jpg', (texture) => {
+    const image = texture.image;
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    const context = canvas.getContext('2d');
+    context.filter = 'brightness(20%)'; 
+    context.drawImage(image, 0, 0);
+
+    const darkTexture = new THREE.CanvasTexture(canvas);
+    darkTexture.mapping = THREE.EquirectangularReflectionMapping;
+    
+    scene.background = darkTexture;
+    scene.environment = darkTexture;
+});
+
 const ambientLight = new THREE.AmbientLight(0x404040, 10);
 scene.add(ambientLight);
 
@@ -122,18 +140,36 @@ setYear.onclick = async function() {
 }
 
 async function initBodies(year) {
-    const colors = [0xffff00, 0x666699, 0x993333, 0x0099ff, 0xcc3300, 0x996600, 0xffcc99, 0x99ccff, 0x6666ff]
-    const geometry = new THREE.SphereGeometry(0.2, 25, 25);
+    const names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"];
 
-    //const vectors = await batchFetch(ids, year, 2);
+    // These are based on the real values, but modified to fit the simulation scale, therefore not accurate
+    const diameters = [13914, 4879, 12104, 12756, 6792, 14290, 12050, 25110, 24520];
+    const sizes = diameters.map(diameter => diameter / 149600);
+
     const response = await fetch("/api.json");
     const data = await response.json();
     const vectors = data[year];
 
     for (let i = 0; i < 9; i++) {
-        meshes.push(new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: colors[i]})));
+        const geometry = new THREE.SphereGeometry(sizes[i], 25, 25);
+        const texture = textureLoader.load(`/textures/${names[i]}.jpg`);
+        let material;
+        if (i === 0) {  // Sun
+            material = new THREE.MeshStandardMaterial({
+                map: texture,
+                emissive: 0xffff00,
+                emissiveMap: texture,
+                emissiveIntensity: 2
+            });
+            const pointLight = new THREE.PointLight(0xffffff, 1, 10);
+            meshes.push(new THREE.Mesh(geometry, material));
+            meshes[0].add(pointLight);
+        } else {        // Planets
+            material = new THREE.MeshStandardMaterial({ map: texture });
+            meshes.push(new THREE.Mesh(geometry, material));
+        }
         const vec = vectors[i];
-        console.log(vec);
+        //console.log(vec);
         scene.add(meshes[i]);
         // Since Three.js uses a different coordinate system than the usual scientific coordinate system like
         // matlab and matplotlib, the coordinates need to be adjusted from (x, y, z) to (x, z, y).

@@ -1,45 +1,3 @@
-/*
-body {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-}
-
-#canvas {
-  flex: 1;
-  width: 100vw;
-  height: 70vh;
-}
-
-#controls {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  width: 100vw;
-  margin: 10px;
-}
-
-#info {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  width: 100vw;
-  margin: 10px;
-}
-
-.slider {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.text {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-*/
-
 body {
   margin: 0;
   width: 100vw;
@@ -126,8 +84,4 @@ input[type="range"].slider {
   display: flex;
   align-items: center;
   margin: 0;
-}
-
-#run {
-  margin-left: 8px; /* Optional: adds space between dateText and checkbox */
 }
