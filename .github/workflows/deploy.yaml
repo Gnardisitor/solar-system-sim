@@ -15,6 +15,9 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     name: Build and Deploy
     runs-on: ubuntu-latest
 
