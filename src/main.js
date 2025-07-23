@@ -3,58 +3,84 @@ import * as THREE from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 
 // Import Emscripten module
-import createModule from "./nbody.js";   // The Emscripten module is compiled from nbody.c
+import createModule from "./nbody.js";
 
+// Create constants for Emscripten functions
+let initBody;
+let simulateStep;
+let getX, getY, getZ;
+let free;
+
+// Get base URL for assets
 const base = import.meta.env.BASE_URL;
 
-// Create variables for the Emscripten module functions
-let initBody;           // Takes id, mass, x, y, z, vx, vy, vz, returns nothing
-let simulateStep;       // Takes method (0: Euler, 1: Verlet, 2: RK4), and step size, returns nothing
-let getX, getY, getZ;   // Takes id, returns x, y, z
-let free;               // Frees all memory allocated by the Emscripten module 
-
+// Constants for planetary bodies
+const names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"];
 const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26];
+const vectors = await fetch(`${base}api.json`).then(response => response.json());
 
-// Controls
+// TODO: Turn into single sizes constant array
+const diameters = [13914, 4879, 12104, 12756, 6792, 14290, 12050, 25110, 24520];
+const sizes = diameters.map(diameter => 2 * diameter / 149600);
+
+// Control elements
+const methodSelect = document.getElementById("method");
 const sliderStep = document.getElementById("step");
 const sliderStepTime = document.getElementById("stepTime");
 const runCheck = document.getElementById("run");
-
-// Text
-const stepText = document.getElementById("stepText");
-const stepTimeText = document.getElementById("stepTimeText");
-const runIcon = document.getElementById("runIcon");
-let running = false;
-
-// Initialize date
 const yearInput = document.getElementById("yearInput");
 const setYear = document.getElementById("setYear");
 
+// Text elements
+const stepText = document.getElementById("stepText");
+const stepTimeText = document.getElementById("stepTimeText");
+const dateText = document.getElementById("dateText");
+const runIcon = document.getElementById("runIcon");
+
+// Date variables
 let wantedYear = yearInput.value;
 let dayText = "01";
 let monthText = "01";
 let yearText = wantedYear.toString();
 const date = new Date(`01-01-${wantedYear}`);
-const dateText = document.getElementById("dateText");
-dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
 
-const clock = new THREE.Clock();
-let update = 0.025;
-let meshes = [];
-let step = 0.5;
+// Simulation variables
+const methodDict = {"euler": 0, "verlet": 1, "rk4": 2};
+let method = methodDict[methodSelect.value];
+let update = sliderStepTime.value;
+let step = sliderStep.value;
+let isLoaded = false;
+let running = false;
 let currentStep = 0;
 let time = 0;
-const methodDict = {"euler": 0, "verlet": 1, "rk4": 2};
-const methodSelect = document.getElementById("method");
-let method = methodDict[methodSelect.value];
 
-// Initialize inputs
+// Initialize text
 stepText.innerHTML = `${step} days/step`;
 stepTimeText.innerHTML = `${update} sec/step`;
-running = false;
+
+/* Update funcitons for controls */
 
 methodSelect.onchange = function() {
     method = methodDict[this.value];
+}
+
+setYear.onclick = async function() {
+    // Reset simulation
+    isLoaded = false;
+    meshes.forEach(mesh => scene.remove(mesh));
+    meshes = [];
+    free();
+
+    // Set new year and update date text
+    wantedYear = yearInput.value;
+    dayText = "01";
+    monthText = "01";
+    yearText = wantedYear.toString();
+    date.setUTCFullYear(wantedYear, 0, 1); // Set date to January 1st of the wanted year
+    dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
+
+    // Reinitialize bodies
+    await initBodies(wantedYear);
 }
 
 sliderStep.oninput = function() {
@@ -77,46 +103,41 @@ runCheck.onclick = () => {
     }
 }
 
+// Three.js variables
 const canvas = document.getElementById("canvas");
+const textureLoader = new THREE.TextureLoader();
+const clock = new THREE.Clock();
+let meshes = [];
+
+// Setup renderer
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-renderer.setAnimationLoop(animate);
 canvas.appendChild(renderer.domElement);
+renderer.setAnimationLoop(animate);
 
-const scene = new THREE.Scene();
+// Setup camera and controls
 const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
 const controls = new OrbitControls(camera, renderer.domElement);
 camera.position.z = 5;
 
-const textureLoader = new THREE.TextureLoader();
+// Setup scene and background
+const scene = new THREE.Scene();
 textureLoader.load(`${base}/textures/stars.jpg`, (texture) => {
-    const image = texture.image;
-    const canvas = document.createElement('canvas');
-    canvas.width = image.width;
-    canvas.height = image.height;
-
-    const context = canvas.getContext('2d');
-    context.filter = 'brightness(20%)'; 
-    context.drawImage(image, 0, 0);
-
-    const darkTexture = new THREE.CanvasTexture(canvas);
-    darkTexture.mapping = THREE.EquirectangularReflectionMapping;
-    
-    scene.background = darkTexture;
-    scene.environment = darkTexture;
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = texture;
+    scene.environment = texture;
 });
-
 const ambientLight = new THREE.AmbientLight(0x404040, 10);
 scene.add(ambientLight);
 
+// Add resize function
 window.addEventListener("resize", () => {
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
 });
 
-// Make sure everything is loaded before starting the simulation
-let isLoaded = false;
+// Initialize Emscripten functions
 await createModule().then((Module) => {
     initBody = Module.cwrap('init_body', null, ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']);
     simulateStep = Module.cwrap('simulate_step', null, ['number', 'number']);
@@ -125,36 +146,18 @@ await createModule().then((Module) => {
     getZ = Module.cwrap('get_z', 'number', ['number']);
     free = Module.cwrap('free_all', null, []);
 });
+
+// Initialize bodies and begin simulation
 await initBodies(wantedYear);
 
-setYear.onclick = async function() {
-    isLoaded = false;
-    free(); // Free the memory allocated by the Emscripten module
-    wantedYear = yearInput.value;
-    meshes.forEach(mesh => scene.remove(mesh));
-    meshes = [];
-    dayText = "01";
-    monthText = "01";
-    yearText = wantedYear.toString();
-    date.setUTCFullYear(wantedYear, 0, 1); // Set date to January 1st of the wanted year
-    dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
-    await initBodies(wantedYear);
-}
-
 async function initBodies(year) {
-    const names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"];
-
-    // These are based on the real values, but modified to fit the simulation scale, therefore not accurate
-    const diameters = [13914, 4879, 12104, 12756, 6792, 14290, 12050, 25110, 24520];
-    const sizes = diameters.map(diameter => 2 * diameter / 149600);
-
-    const response = await fetch(`${base}api.json`);
-    const data = await response.json();
-    const vectors = data[year];
+    const currentVectors = vectors[year];
 
     for (let i = 0; i < 9; i++) {
         const geometry = new THREE.SphereGeometry(sizes[i], 25, 25);
         const texture = textureLoader.load(`${base}/textures/${names[i]}.jpg`);
+
+        // Texture loading and mesh creation
         let material;
         if (i === 0) {  // Sun
             material = new THREE.MeshStandardMaterial({
@@ -170,15 +173,16 @@ async function initBodies(year) {
             material = new THREE.MeshStandardMaterial({ map: texture });
             meshes.push(new THREE.Mesh(geometry, material));
         }
-        const vec = vectors[i];
-        //console.log(vec);
+
+        // Add meshes and set positions
+        const vector = currentVectors[i];
         scene.add(meshes[i]);
         // Since Three.js uses a different coordinate system than the usual scientific coordinate system like
         // matlab and matplotlib, the coordinates need to be adjusted from (x, y, z) to (x, z, y).
-        meshes[i].position.set(vec[0], vec[2], vec[1]);
+        meshes[i].position.set(vector[0], vector[2], vector[1]);
 
         // Initialize the body in the C module
-        initBody(i, masses[i], vec[0], vec[2], vec[1], vec[3], vec[5], vec[4]);
+        initBody(i, masses[i], vector[0], vector[2], vector[1], vector[3], vector[5], vector[4]);
     }
     isLoaded = true;
 }
@@ -195,9 +199,9 @@ function simulate() {
     }
 
     // Update the date
-    date.setTime(date.getTime() + (step * 86400 * 1000)); // Convert step from days to milliseconds
+    date.setTime(date.getTime() + (step * 86400 * 1000));           // Convert step from days to milliseconds
     dayText = String(date.getUTCDate()).padStart(2, '0');
-    monthText = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed in JavaScript
+    monthText = String(date.getUTCMonth() + 1).padStart(2, '0');    // Months are 0-indexed in JavaScript
     yearText = date.getUTCFullYear().toString();
     dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
 }

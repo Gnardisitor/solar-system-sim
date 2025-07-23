@@ -10,6 +10,3 @@ dist/
 
 # Settings files
 .vscode/
-
-# Instructions on compilation
-compile.txt
