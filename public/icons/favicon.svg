@@ -1,0 +1,8 @@
+<svg width="256" height="256" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
+	<!-- Sun -->
+	<circle cx="50" cy="50" r="15" fill="#ffc50f"/>
+	<!-- Orbit -->
+	<ellipse cx="50" cy="50" rx="35" ry="20" fill="none" stroke="#787878" stroke-width="1.5" transform="rotate(-30 50 50)"/>
+	<!-- Planet -->
+	<circle cx="25" cy="45" r="6" fill="#1d76c4"/>
+</svg>

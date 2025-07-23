@@ -6,10 +6,10 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 import createModule from "./nbody.js";
 
 // Create constants for Emscripten functions
-let initBody;
-let simulateStep;
-let getX, getY, getZ;
-let free;
+let initBody;           // Initialize a body in the simulation
+let simulateStep;       // Simulate one step and update positions
+let getX, getY, getZ;   // Get position of body depending on id
+let free;               // Free all arrays if allocated 
 
 // Get base URL for assets
 const base = import.meta.env.BASE_URL;
@@ -18,10 +18,7 @@ const base = import.meta.env.BASE_URL;
 const names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"];
 const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26];
 const vectors = await fetch(`${base}api.json`).then(response => response.json());
-
-// TODO: Turn into single sizes constant array
-const diameters = [13914, 4879, 12104, 12756, 6792, 14290, 12050, 25110, 24520];
-const sizes = diameters.map(diameter => 2 * diameter / 149600);
+const sizes = [0.22, 0.07, 0.15, 0.16, 0.08, 0.20, 0.19, 0.30, 0.30]    // Scaled sizes for Three.js
 
 // Control elements
 const methodSelect = document.getElementById("method");
@@ -51,12 +48,12 @@ let update = sliderStepTime.value;
 let step = sliderStep.value;
 let isLoaded = false;
 let running = false;
-let currentStep = 0;
 let time = 0;
 
 // Initialize text
 stepText.innerHTML = `${step} days/step`;
 stepTimeText.innerHTML = `${update} sec/step`;
+dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
 
 /* Update funcitons for controls */
 
@@ -95,12 +92,8 @@ sliderStepTime.oninput = function() {
 
 runCheck.onclick = () => {
     running = !running;
-    if (running) {
-        runIcon.src = `${base}/icons/pause.svg`;
-    }
-    else {
-        runIcon.src = `${base}/icons/play.svg`;
-    }
+    if (running) runIcon.src = `${base}/icons/pause.svg`;
+    else runIcon.src = `${base}/icons/play.svg`;
 }
 
 // Three.js variables
@@ -114,6 +107,11 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(canvas.clientWidth, canvas.clientHeight);
 canvas.appendChild(renderer.domElement);
 renderer.setAnimationLoop(animate);
+
+// Prevent default drag behavior on the canvas (fixes bug on new Firfox version)
+renderer.domElement.addEventListener('dragstart', (event) => {
+    event.preventDefault();
+});
 
 // Setup camera and controls
 const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
@@ -174,11 +172,10 @@ async function initBodies(year) {
             meshes.push(new THREE.Mesh(geometry, material));
         }
 
-        // Add meshes and set positions
+        // Since Three.js uses a different coordinate system than the usual scientific coordinate system like
+        // matlab and matplotlib, the coordinates need to be adjusted from (x, y, z) to (x, z, y)
         const vector = currentVectors[i];
         scene.add(meshes[i]);
-        // Since Three.js uses a different coordinate system than the usual scientific coordinate system like
-        // matlab and matplotlib, the coordinates need to be adjusted from (x, y, z) to (x, z, y).
         meshes[i].position.set(vector[0], vector[2], vector[1]);
 
         // Initialize the body in the C module
@@ -189,12 +186,10 @@ async function initBodies(year) {
 
 function simulate() {
     simulateStep(method, step);
-    console.log(`Moved to step ${currentStep}!`);
     for (let i = 0; i < meshes.length; i++) {
         const x = getX(i);
         const y = getY(i);
         const z = getZ(i);
-        console.log(`Body ${i} new position: (${x}, ${y}, ${z})`);
         meshes[i].position.set(x, y, z);
     }
 
@@ -207,15 +202,16 @@ function simulate() {
 }
 
 function animate() {
+    // Make sure the simulation is running and loaded before updating
     if (running && isLoaded) {
         time += clock.getDelta();
         if (time >= update) {
-            currentStep++;
             simulate();
             time = 0;
         }
     }
 
+    // Update camera and controls
     controls.update();
     renderer.render(scene, camera);
 }
