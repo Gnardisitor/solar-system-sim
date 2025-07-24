@@ -58,6 +58,36 @@ void init_body(int body, double mass, double x, double y, double z, double vx, d
 	bodies[body].vz = vz;
 }
 
+void init_system(void) {
+	// Initiate variables for totals
+	double total_mass = 0.0;
+	double total_vx = 0.0;
+	double total_vy = 0.0;
+	double total_vz = 0.0;
+
+	for (int i = 0; i < SIZE; i++) {
+		// Compute total mass of system
+		total_mass = total_mass + bodies[i].mass;
+
+		// Compute total weighted velocity of the center of mass
+		total_vx = total_vx + bodies[i].vx * bodies[i].mass;
+		total_vy = total_vy + bodies[i].vy * bodies[i].mass;
+		total_vz = total_vz + bodies[i].vz * bodies[i].mass;
+	}
+
+	// Compute velocity of the center of mass
+	total_vx = total_vx / total_mass;
+	total_vy = total_vy / total_mass;
+	total_vz = total_vz / total_mass;
+
+	// Remove velocity of the center of mass from all bodies
+	for (int i = 0; i < SIZE; i++) {
+		bodies[i].vx = bodies[i].vx - total_vx;
+		bodies[i].vy = bodies[i].vy - total_vy;
+		bodies[i].vz = bodies[i].vz - total_vz;
+	}
+}
+
 void simulate_step(method_type method, double step) {
 	switch (method) {
 		case EULER:

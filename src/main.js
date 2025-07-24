@@ -7,6 +7,7 @@ import createModule from "./nbody.js";
 
 // Create constants for Emscripten functions
 let initBody;           // Initialize a body in the simulation
+let initSystem;         // Remove velocity of the center of mass from bodies
 let simulateStep;       // Simulate one step and update positions
 let getX, getY, getZ;   // Get position of body depending on id
 let free;               // Free all arrays if allocated 
@@ -210,6 +211,7 @@ window.addEventListener("resize", () => {
 // Initialize Emscripten functions
 await createModule().then((Module) => {
     initBody = Module.cwrap('init_body', null, ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']);
+    initSystem = Module.cwrap('init_system', null, []);
     simulateStep = Module.cwrap('simulate_step', null, ['number', 'number']);
     getX = Module.cwrap('get_x', 'number', ['number']);
     getY = Module.cwrap('get_y', 'number', ['number']);
@@ -263,6 +265,7 @@ async function initBodies(year) {
             scene.add(line);
         }
     }
+    initSystem();
     isLoaded = true;
 }
 
