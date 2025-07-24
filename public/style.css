@@ -19,12 +19,12 @@ body {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
   background: #444b57;
   color: #f3f3f3;
   border: none;
-  border-radius: 50%;
+  border-radius: 45%;
   cursor: pointer;
   z-index: 10;
   display: flex;

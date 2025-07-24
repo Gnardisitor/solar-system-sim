@@ -4,6 +4,7 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 
 // Import Emscripten module
 import createModule from "./nbody.js";
+import { max } from "three/tsl";
 
 // Create constants for Emscripten functions
 let initBody;           // Initialize a body in the simulation
@@ -18,12 +19,12 @@ const base = import.meta.env.BASE_URL;
 const collapseBtn = document.getElementById("collapse-btn");
 collapseBtn.addEventListener("click", () => {
     controlsDiv.classList.toggle("collapsed");
-    // Change button icon
-    collapseBtn.innerHTML = controlsDiv.classList.contains("collapsed") ? "&#x25BC;" : "&#x25B2;";
+    collapseBtn.innerHTML = controlsDiv.classList.contains("collapsed") ? "+" : "-";
     collapseBtn.title = controlsDiv.classList.contains("collapsed") ? "Expand" : "Collapse";
 });
 
-// Make drawer draggable
+/* Make drawer draggable */
+
 const controlsDiv = document.getElementById("controls");
 const dragBar = document.getElementById("controls-drag-handle");
 let isDragging = false;
@@ -63,8 +64,8 @@ document.addEventListener("mouseup", function() {
 // Constants for planetary bodies
 const names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"];
 const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26];
-const vectors = await fetch(`${base}api.json`).then(response => response.json());
 const sizes = [0.22, 0.07, 0.15, 0.16, 0.08, 0.20, 0.19, 0.30, 0.30]    // Scaled sizes for Three.js
+const vectors = await fetch(`${base}api.json`).then(response => response.json());
 
 // Control elements
 const methodSelect = document.getElementById("method");
@@ -96,6 +97,10 @@ let isLoaded = false;
 let running = false;
 let time = 0;
 
+// Initialize orbit positions and lines
+let orbitPositions = Array(8).fill().map(() => []);
+let orbitLines = [];
+
 // Initialize text
 stepText.innerHTML = `${step} days/step`;
 stepTimeText.innerHTML = `${update} sec/step`;
@@ -113,6 +118,11 @@ setYear.onclick = async function() {
     meshes.forEach(mesh => scene.remove(mesh));
     meshes = [];
     free();
+
+    // Reset orbit lines and positions
+    orbitLines.forEach(line => scene.remove(line));
+    orbitLines = [];
+    orbitPositions = Array(8).fill().map(() => []);
 
     // Set new year and update date text
     wantedYear = yearInput.value;
@@ -226,6 +236,16 @@ async function initBodies(year) {
 
         // Initialize the body in the C module
         initBody(i, masses[i], vector[0], vector[2], vector[1], vector[3], vector[5], vector[4]);
+
+        // Initialize orbit line (skip sun)
+        if (i !== 0) {
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+            const material = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
+            const line = new THREE.Line(geometry, material);
+            orbitLines.push(line);
+            scene.add(line);
+        }
     }
     isLoaded = true;
 }
@@ -237,6 +257,28 @@ function simulate() {
         const y = getY(i);
         const z = getZ(i);
         meshes[i].position.set(x, y, z);
+
+        // Store positions for orbit lines (skip sun)
+        if (i !== 0) {
+            const j = i - 1;    // Adjust index for orbit lines
+            orbitPositions[j].push(x, y, z);
+
+            // Limit number of points for performance
+            if (orbitPositions[j].length > 3000) {
+                orbitPositions[j] = orbitPositions[j].slice(-3000);
+            }
+
+            // Update orbit line geometry
+            const line = orbitLines[j];
+            if (line) {
+                line.geometry.setAttribute(
+                    'position',
+                    new THREE.Float32BufferAttribute(orbitPositions[j], 3)
+                );
+                line.geometry.setDrawRange(0, orbitPositions[j].length / 3);
+                line.geometry.attributes.position.needsUpdate = true;
+            }
+        }
     }
 
     // Update the date
