@@ -4,7 +4,6 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 
 // Import Emscripten module
 import createModule from "./nbody.js";
-import { max } from "three/tsl";
 
 // Create constants for Emscripten functions
 let initBody;           // Initialize a body in the simulation
@@ -39,6 +38,10 @@ dragBar.addEventListener("mousedown", function(e) {
     document.body.style.userSelect = "none";
 });
 
+dragBar.addEventListener('dragstart', (event) => {
+    event.preventDefault();
+});
+
 document.addEventListener("mousemove", function(e) {
     if (isDragging) {
         let left = e.clientX - dragOffsetX;
@@ -64,8 +67,10 @@ document.addEventListener("mouseup", function() {
 // Constants for planetary bodies
 const names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"];
 const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26];
-const sizes = [0.22, 0.07, 0.15, 0.16, 0.08, 0.20, 0.19, 0.30, 0.30]    // Scaled sizes for Three.js
+const rotation = [0.0001, 0.017, -0.017, 0.0729, 0.0708, 0.174, 0.164, -0.097, 0.096];  // Rotation for Three.js
+const sizes = [0.22, 0.07, 0.15, 0.16, 0.08, 0.20, 0.19, 0.30, 0.30]                    // Scaled sizes for Three.js
 const vectors = await fetch(`${base}api.json`).then(response => response.json());
+
 
 // Control elements
 const methodSelect = document.getElementById("method");
@@ -159,8 +164,9 @@ const clock = new THREE.Clock();
 let meshes = [];
 
 // Setup renderer
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 canvas.appendChild(renderer.domElement);
 renderer.setAnimationLoop(animate);
 
@@ -189,6 +195,16 @@ window.addEventListener("resize", () => {
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
+
+    // Clamp controlsDiv position if it's fixed (dragged)
+    if (controlsDiv.style.position === "fixed") {
+        let left = parseInt(controlsDiv.style.left, 10) || 0;
+        let top = parseInt(controlsDiv.style.top, 10) || 0;
+        left = Math.max(0, Math.min(window.innerWidth - controlsDiv.offsetWidth, left));
+        top = Math.max(0, Math.min(window.innerHeight - controlsDiv.offsetHeight, top));
+        controlsDiv.style.left = left + "px";
+        controlsDiv.style.top = top + "px";
+    }
 });
 
 // Initialize Emscripten functions
@@ -240,8 +256,8 @@ async function initBodies(year) {
         // Initialize orbit line (skip sun)
         if (i !== 0) {
             const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
-            const material = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
+            geometry.setAttribute("position", new THREE.Float32BufferAttribute([], 3));
+            const material = new THREE.LineBasicMaterial({ color: 0x808080 });
             const line = new THREE.Line(geometry, material);
             orbitLines.push(line);
             scene.add(line);
@@ -257,6 +273,7 @@ function simulate() {
         const y = getY(i);
         const z = getZ(i);
         meshes[i].position.set(x, y, z);
+        meshes[i].rotation.y += rotation[i] * step;
 
         // Store positions for orbit lines (skip sun)
         if (i !== 0) {
@@ -268,16 +285,10 @@ function simulate() {
                 orbitPositions[j] = orbitPositions[j].slice(-3000);
             }
 
-            // Update orbit line geometry
-            const line = orbitLines[j];
-            if (line) {
-                line.geometry.setAttribute(
-                    'position',
-                    new THREE.Float32BufferAttribute(orbitPositions[j], 3)
-                );
-                line.geometry.setDrawRange(0, orbitPositions[j].length / 3);
-                line.geometry.attributes.position.needsUpdate = true;
-            }
+            // Add the positions to orbit line geometry
+            orbitLines[j].geometry.setAttribute("position", new THREE.Float32BufferAttribute(orbitPositions[j], 3));
+            orbitLines[j].geometry.setDrawRange(0, orbitPositions[j].length / 3);
+            orbitLines[j].geometry.attributes.position.needsUpdate = true;
         }
     }
 
