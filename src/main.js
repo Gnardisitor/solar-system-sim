@@ -14,6 +14,52 @@ let free;               // Free all arrays if allocated
 // Get base URL for assets
 const base = import.meta.env.BASE_URL;
 
+// Make collapse button functional
+const collapseBtn = document.getElementById("collapse-btn");
+collapseBtn.addEventListener("click", () => {
+    controlsDiv.classList.toggle("collapsed");
+    // Change button icon
+    collapseBtn.innerHTML = controlsDiv.classList.contains("collapsed") ? "&#x25BC;" : "&#x25B2;";
+    collapseBtn.title = controlsDiv.classList.contains("collapsed") ? "Expand" : "Collapse";
+});
+
+// Make drawer draggable
+const controlsDiv = document.getElementById("controls");
+const dragBar = document.getElementById("controls-drag-handle");
+let isDragging = false;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+dragBar.addEventListener("mousedown", function(e) {
+    isDragging = true;
+    dragOffsetX = e.clientX - controlsDiv.getBoundingClientRect().left;
+    dragOffsetY = e.clientY - controlsDiv.getBoundingClientRect().top;
+    controlsDiv.style.transition = "none";
+    document.body.style.userSelect = "none";
+});
+
+document.addEventListener("mousemove", function(e) {
+    if (isDragging) {
+        let left = e.clientX - dragOffsetX;
+        let top = e.clientY - dragOffsetY;
+        left = Math.max(0, Math.min(window.innerWidth - controlsDiv.offsetWidth, left));
+        top = Math.max(0, Math.min(window.innerHeight - controlsDiv.offsetHeight, top));
+        controlsDiv.style.left = left + "px";
+        controlsDiv.style.top = top + "px";
+        controlsDiv.style.right = "auto";
+        controlsDiv.style.transform = "none";
+        controlsDiv.style.position = "fixed";
+    }
+});
+
+document.addEventListener("mouseup", function() {
+    if (isDragging) {
+        isDragging = false;
+        controlsDiv.style.transition = "";
+        document.body.style.userSelect = "";
+    }
+});
+
 // Constants for planetary bodies
 const names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"];
 const masses = [1.989E30, 3.301E23, 4.868E24, 5.972E24, 6.417E23, 1.898E27, 5.683E26, 8.681E25, 1.024E26];
@@ -55,7 +101,7 @@ stepText.innerHTML = `${step} days/step`;
 stepTimeText.innerHTML = `${update} sec/step`;
 dateText.innerHTML = `${dayText}-${monthText}-${yearText} UTC`;
 
-/* Update funcitons for controls */
+/* Update functions for controls */
 
 methodSelect.onchange = function() {
     method = methodDict[this.value];
@@ -154,10 +200,10 @@ async function initBodies(year) {
     for (let i = 0; i < 9; i++) {
         const geometry = new THREE.SphereGeometry(sizes[i], 25, 25);
         const texture = textureLoader.load(`${base}/textures/${names[i]}.jpg`);
-
-        // Texture loading and mesh creation
         let material;
-        if (i === 0) {  // Sun
+
+        // Texture loading and mesh creation, add point light for the sun
+        if (i === 0) {
             material = new THREE.MeshStandardMaterial({
                 map: texture,
                 emissive: 0xffff00,
@@ -167,7 +213,7 @@ async function initBodies(year) {
             const pointLight = new THREE.PointLight(0xffffff, 1, 10);
             meshes.push(new THREE.Mesh(geometry, material));
             meshes[0].add(pointLight);
-        } else {        // Planets
+        } else {
             material = new THREE.MeshStandardMaterial({ map: texture });
             meshes.push(new THREE.Mesh(geometry, material));
         }

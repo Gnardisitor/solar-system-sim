@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>N-Body Web UI</title>
+    <title>Solar System Sim</title>
     <link rel="stylesheet" href="./style.css">
     <link rel="icon" href="./icons/favicon.ico" sizes="16x16">
     <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
@@ -11,6 +11,10 @@
         <script type="module" src="./src/main.js"></script>
         <div id="canvas"></div>
         <div id="controls">
+            <div id="controls-drag-handle">
+                <span class="drag-bar"></span>
+            </div>
+            <button id="collapse-btn" title="Collapse" aria-label="Collapse">&#x25B2;</button>
             <div class="input-group">
                 <label for="methodSelect">Simulation Method:</label>
                 <select name="simulationMethod" id="method">
@@ -37,7 +41,7 @@
             <div class="input-group">
                 <p class="text" id="dateText"></p>
                 <button id="run">
-                    <img id="runIcon" src="/icons/play.svg"/>
+                    <img id="runIcon" src="./icons/play.svg"/>
                 </button>
             </div>
         </div>

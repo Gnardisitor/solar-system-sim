@@ -15,11 +15,82 @@ body {
   z-index: 1;
 }
 
+#collapse-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: #444b57;
+  color: #f3f3f3;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;  /* Smaller icon */
+  transition: background 0.2s;
+}
+
+#collapse-btn:hover {
+  background: #666b7a;
+}
+
+#controls.collapsed .input-group:not(:last-child) {
+  display: none;
+}
+
+#controls.collapsed #controls-drag-handle,
+#controls.collapsed #collapse-btn,
+#controls.collapsed .input-group:last-child {
+  display: flex;
+}
+
+#controls.collapsed #controls-drag-handle {
+  width: 100px;           /* Keep original width */
+  margin-left: auto;      /* Center horizontally */
+  margin-right: auto;
+  justify-content: center;
+  display: flex;
+}
+
+#controls.collapsed {
+  min-height: 0;
+  height: auto;
+  width: 300px;
+  padding: 8px 16px 16px 8px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+#controls-drag-handle {
+  width: 100px;
+  height: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+  margin-bottom: 8px;
+  margin-top: 0px;
+  background: #888;
+  border-radius: 3px;
+}
+
+.drag-bar {
+  width: 100%;
+  height: 6px;
+  opacity: 0.7;
+  padding-bottom: 24px;
+}
+
 #controls {
   position: fixed;
   top: 50%;
   right: 30px;
   transform: translateY(-50%);
+  left: auto;
   width: 300px;
   min-height: 200px;
   background: #23272f;
@@ -30,7 +101,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: space-around;
-  padding: 24px 16px;
+  padding: 8px 16px 16px 8px;
 }
 
 .slider, .text, .input-group {
