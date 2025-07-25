@@ -4,6 +4,8 @@ node_modules/
 # Compiled files
 src/nbody.js
 src/nbody.wasm
+extra/api
+extra/api.json
 
 # Build output
 dist/

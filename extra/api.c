@@ -1,3 +1,6 @@
+// This program caches ephemeris data from JPL Horizons for the solar system bodies into a JSON file
+// Due to restrictions with ephemeris data from JPL Horizons, it can only fetch dates starting from 1750
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -53,9 +56,17 @@ int get_body_vars(int body) {
 	sprintf(url, "https://ssd.jpl.nasa.gov/api/horizons.api?format=text&COMMAND='%s'&CENTER='@0'&EPHEM_TYPE='VECTOR'&VEC_TABLE='2'&OUT_UNITS='AU-D'&START_TIME='%d-01-01'&STOP_TIME='%d-01-02'&STEP_SIZE='2%%20d'", id[body], year, year);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 
+	// Perform curl operation
 	result = curl_easy_perform(curl);
 	if (result != CURLE_OK) {
 		printf("ERROR: curl could not fetch, %s\n", curl_easy_strerror(result));
+		return FAILURE;
+	}
+
+	// Check if data for body exists at the given date
+	if (strstr(chunk.memory, "No ephemeris")) {
+		printf("ERROR: No data found for body %d in year %d\n", body, year);
+		free(chunk.memory);
 		return FAILURE;
 	}
 
@@ -67,6 +78,15 @@ int get_body_vars(int body) {
 	pos[4] = strstr(chunk.memory, "VY=");
 	pos[5] = strstr(chunk.memory, "VZ=");
 	pos[6] = strstr(chunk.memory, "$$EOE");
+
+	// Check for null pointers
+	for (int i = 0; i <= 6; i++) {
+		if (pos[i] == NULL) {
+			printf("ERROR: Could not find position %d in string\n", i);
+			free(chunk.memory);
+			return FAILURE;
+		}
+	}
 
 	for (int i = 0; i < 6; i++) {
 		strncpy(var, (pos[i] + 3), pos[i + 1] - pos[i] + 3);

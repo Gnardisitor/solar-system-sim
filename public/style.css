@@ -50,8 +50,8 @@ body {
 }
 
 #controls.collapsed #controls-drag-handle {
-  width: 100px;           /* Keep original width */
-  margin-left: auto;      /* Center horizontally */
+  width: 100px;
+  margin-left: auto;
   margin-right: auto;
   justify-content: center;
   display: flex;
@@ -124,7 +124,7 @@ body {
 .text, label, input, select, button {
   font-family: Arial, sans-serif;
   font-size: 16px;
-  color: #f3f3f3; /* light text */
+  color: #f3f3f3;
 }
 
 input, select, button {
