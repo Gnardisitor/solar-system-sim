@@ -24,7 +24,7 @@ body {
   background: #444b57;
   color: #f3f3f3;
   border: none;
-  border-radius: 45%;
+  border-radius: 20%;
   cursor: pointer;
   z-index: 10;
   display: flex;
@@ -64,6 +64,29 @@ body {
   padding: 8px 16px 16px 8px;
   flex-direction: column;
   align-items: stretch;
+}
+
+#home {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  background: #444b57;
+  color: #f3f3f3;
+  border: none;
+  border-radius: 5px;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: background 0.2s;
+}
+#home-btn:hover {
+  background: #666b7a;
 }
 
 #controls-drag-handle {
