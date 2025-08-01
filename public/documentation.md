@@ -6,7 +6,7 @@
 
 - Graphics programmed using **Three.js** in **JavaScript** to be more immersive and interactve;
 
-- Cached responses from **[JPL Horizons](https://ssd.jpl.nasa.gov/horizons/)** into a JSON using a **[C program](/solar-system-sim/extra/api.c)** for **blazing fast loading times**;
+- Cached responses from **[JPL Horizons](https://ssd.jpl.nasa.gov/horizons/)** into a JSON using a **C program** for **blazing fast loading times**;
 
 - **Moveable and collapsible UI** to make it as easy to use as possible;
 
