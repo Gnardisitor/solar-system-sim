@@ -1,5 +1,3 @@
----
-
 ## Features
 
 - This **N-body simulation** of the Solar System is built using **[Three.js](https://threejs.org/)** and **[Emscripten](https://emscripten.org/)**;
