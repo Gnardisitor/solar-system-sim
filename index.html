@@ -23,7 +23,7 @@
         <main>
             <section>
                 <h2>Explore the Simulation</h2>
-                <button onclick="window.location.href='./html/interactive.html'">
+                <button onclick="window.location.href='interactive.html'">
                     <p>Interactive Simulation</p>
                     <img id="runIcon" src="./icons/play.svg">
                 </button>
@@ -35,7 +35,7 @@
         </main>
         <script>
         // Load and render markdown with LaTeX
-        fetch('./docs/documentation.md').then(response => response.text()).then(md => {
+        fetch('./documentation.md').then(response => response.text()).then(md => {
             document.getElementById('markdown-content').innerHTML = marked.parse(md);
             if (window.MathJax) MathJax.typesetPromise();
             hljs.highlightAll();
