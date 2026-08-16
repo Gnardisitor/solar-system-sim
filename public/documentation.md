@@ -8,7 +8,7 @@
 
 - Cached responses from **[JPL Horizons](https://ssd.jpl.nasa.gov/horizons/)** into a JSON using a **C program** for **blazing fast loading times**;
 
-- **Moveable and collapsible UI** to make it as easy to use as possible;
+- **Collapsible UI** to make it as easy to use as possible;
 
 ---
 
@@ -26,7 +26,7 @@ There are 5 controls in total to learn:
 
 - The play/pause button allows to play or pause the entire simulation;
 
-The date in the bottom left is the current date of the simulation in UTC time. The entire controls drawer is draggable from the top bar, and collapsible using the button in the top right of the drawer. 
+The date shown next to the play/pause button is the current date of the simulation in UTC time. The controls dock is collapsible using the button at its right edge.
 
 **Have fun!**
 

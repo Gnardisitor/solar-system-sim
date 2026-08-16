@@ -1,10 +1,9 @@
 body {
   margin: 0;
   max-width: 100vw;
-  background: #181a20;
-  color: #f3f3f3;
-  font-family: Arial, sans-serif;
-  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -12,100 +11,173 @@ body {
 }
 
 header {
-  background: #23272f;
-  padding: 32px 0 24px 0;
-  text-align: center;
-  margin-bottom: 32px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  width: 100vw;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--border), 0 1px 24px -8px var(--accent-dim);
+  padding: 14px 24px;
+  width: 100%;
   display: flex;
-  flex-direction: row;
-  justify-content: center;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header {
+    transition-property: opacity;
+    transform: none;
+
+    @starting-style {
+      transform: none;
+    }
+  }
+}
+
+#back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+#back-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+#back-link:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 #icon {
-  width: 64px;
-  height: 64px;
-  margin-left: 16px;
-  vertical-align: middle;
+  width: 26px;
+  height: 26px;
 }
 
 header h1 {
   margin: 0;
-  font-size: 2.5rem;
-  letter-spacing: 2px;
-  color: #f3f3f3;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 main {
-  width: 85vw;
+  width: 100%;
+  max-width: 760px;
+  padding: 0 24px;
 }
 
 main section {
-  background: #23272f;
-  border-radius: 16px;
-  margin-bottom: 32px;
-  padding: 32px 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  padding: 40px 0 64px;
 }
 
 main section h2 {
   margin-top: 0;
-  color: #f3f3f3;
-  font-size: 1.5rem;
-  margin-bottom: 16px;
-}
-
-#sim-btn, button[onclick] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  background: #444b57;
-  color: #f3f3f3;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 20px;
-  font-size: 1.3rem;
-  font-weight: bold;
-  cursor: pointer;
-  margin: 0 auto;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-  transition: background 0.2s, transform 0.1s;
-}
-
-#sim-btn:hover, button[onclick]:hover {
-  background: #666b7a;
-  transform: translateY(-2px) scale(1.03);
-}
-
-#sim-btn img, button[onclick] img {
-  width: 36px;
-  height: 36px;
+  color: var(--text);
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
 }
 
 #markdown-content {
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1.7;
-  color: #f3f3f3;
-  text-align: justify;
+  color: var(--text);
 }
 
-#markdown-content h1, #markdown-content h2, #markdown-content h3 {
-  color: #f3f3f3;
+/* The markdown fetch/parse finishes after page load; its rendered elements
+   (not the plain-text "Loading..." placeholder, which isn't an element)
+   fade in together as one block rather than popping in as a hard cut. */
+#markdown-content > * {
+  animation: content-reveal 450ms var(--ease-out) both;
+}
+
+@keyframes content-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #markdown-content > * {
+    animation-name: content-reveal-fade-only;
+  }
+}
+
+@keyframes content-reveal-fade-only {
+  from {
+    opacity: 0;
+  }
+}
+
+#markdown-content h2,
+#markdown-content h3 {
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin-top: 2.2em;
+}
+
+#markdown-content p,
+#markdown-content li {
+  max-width: 65ch;
+  color: var(--text);
+}
+
+#markdown-content a {
+  color: var(--accent);
+}
+
+#markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.4em 0;
 }
 
 #markdown-content code {
-  background: #181a20;
-  border-radius: 6px;
+  font-family: var(--font-mono);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   padding: 2px 6px;
-  color: #f3f3f3;
+  color: var(--text);
+  font-size: 0.9em;
 }
 
 #markdown-content pre {
-  background: #181a20;
-  border-radius: 8px;
-  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
   overflow-x: auto;
+}
+
+#markdown-content pre code {
+  border: none;
+  padding: 0;
+  background: none;
 }

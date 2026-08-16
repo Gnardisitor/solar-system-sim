@@ -31,6 +31,7 @@ function formatDate(date: Date): string {
 async function main(): Promise<void> {
   const canvas = document.getElementById("canvas");
   if (!canvas) throw new Error("Missing #canvas element");
+  const loading = document.getElementById("loading");
 
   const [vectors, physics] = await Promise.all([
     fetch(`${base}api.json`).then((response) => response.json() as Promise<VectorTable>),
@@ -75,6 +76,7 @@ async function main(): Promise<void> {
   });
 
   await loadYear(panel.initialYear);
+  loading?.classList.add("hidden");
 
   let accumulatedSeconds = 0;
   scene.start((deltaSeconds) => {

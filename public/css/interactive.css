@@ -1,189 +1,394 @@
 body {
   margin: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
+  background: var(--bg);
 }
 
 #canvas {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 1;
 }
 
-#collapse-btn {
+.vignette {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 15px;
-  height: 15px;
-  background: #444b57;
-  color: #f3f3f3;
-  border: none;
-  border-radius: 20%;
-  cursor: pointer;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-
-#collapse-btn:hover {
-  background: #666b7a;
-}
-
-#controls.collapsed .input-group:not(:last-child) {
-  display: none;
-}
-
-#controls.collapsed #controls-drag-handle,
-#controls.collapsed #collapse-btn,
-#controls.collapsed .input-group:last-child {
-  display: flex;
-}
-
-#controls.collapsed #controls-drag-handle {
-  width: 100px;
-  margin-left: auto;
-  margin-right: auto;
-  justify-content: center;
-  display: flex;
-}
-
-#controls.collapsed {
-  min-height: 0;
-  height: auto;
-  width: 300px;
-  padding: 8px 16px 16px 8px;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-#home {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 20;
-  background: #444b57;
-  color: #f3f3f3;
-  border: none;
-  border-radius: 5px;
-  width: 36px;
-  height: 36px;
-  font-size: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  transition: background 0.2s;
-}
-#home-btn:hover {
-  background: #666b7a;
-}
-
-#controls-drag-handle {
-  width: 100px;
-  height: 6px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: grab;
-  margin-bottom: 8px;
-  margin-top: 0px;
-  background: #888;
-  border-radius: 3px;
-}
-
-.drag-bar {
-  width: 100%;
-  height: 6px;
-  opacity: 0.7;
-  padding-bottom: 24px;
-}
-
-#controls {
-  position: fixed;
-  top: 50%;
-  right: 30px;
-  transform: translateY(-50%);
-  left: auto;
-  width: 300px;
-  min-height: 200px;
-  background: #23272f;
-  box-shadow: -2px 0 10px rgba(0,0,0,0.2);
-  border-radius: 8px 8px 8px 8px;
+  inset: 0;
   z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(10, 13, 18, 0.55) 100%);
+}
+
+/* Loading state */
+
+.loading {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-around;
-  padding: 8px 16px 16px 8px;
+  justify-content: center;
+  gap: 16px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: opacity 0.4s ease;
 }
 
-.slider, .text, .input-group {
-  margin-bottom: 10px;
+.loading.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
-.slider {
-  width: 45%;
+.loading-ring {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
 }
 
-.input-group-plus {
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-ring {
+    animation-duration: 2s;
+  }
+}
+
+.corner-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  text-decoration: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Dock */
+
+/* width: max-content (not the default shrink-to-fit) is load-bearing here.
+   .dock centers via left: 50% + transform: translateX(-50%), the standard
+   trick for a fixed-position, content-sized, centered box. But for a
+   width:auto fixed element with only `left` set (no `right`), browsers
+   resolve shrink-to-fit's "available width" as the space from that 50%
+   offset to the viewport's far edge — exactly half the viewport — and
+   silently clamp to it, independent of max-width. That's what actually
+   caused controls to go missing at "specific lengths": the dock could
+   never use more than half the window's width no matter which wrap
+   breakpoint was chosen, so any content wider than that was cut off well
+   before any breakpoint logic even ran. width: max-content sizes the box
+   to its true content width instead, leaving max-width below as the only
+   real constraint — flex-wrap then only engages exactly when content
+   genuinely doesn't fit, at any window size, with no gap to fall into. */
+.dock {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
-  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  width: 100%;
-  justify-content: right;
+  justify-content: center;
+  gap: 18px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(18, 21, 29, 0.72);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
-.text, label, input, select, button {
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-  color: #f3f3f3;
+@media (prefers-reduced-transparency: reduce) {
+  .dock {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
-input, select, button {
-  background: #23272f;
-  color: #f3f3f3;
-  border: 1px solid #444;
-  border-radius: 4px;
-  padding: 4px 8px;
+/* Purely cosmetic: hides the group dividers once they'd otherwise sit at
+   odd spots mid-wrap. Nothing structural depends on this width — get it
+   wrong and a divider looks slightly out of place, nothing goes off-screen,
+   since wrapping itself is content-driven (see .dock above), not gated by
+   this breakpoint. */
+@media (max-width: 640px) {
+  .dock-divider {
+    display: none;
+  }
 }
 
-button:hover {
-  background: #444b57;
-}
-
-input[type="range"].slider {
-  accent-color: #f3f3f3;
-  background: #23272f;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center
-}
-
-.text {
+.dock-group {
   display: flex;
   align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.dock-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.dock-playback {
+  gap: 10px;
+}
+
+.readout {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 9ch;
+}
+
+.slider-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.slider-field label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.slider-field input[type="range"] {
+  width: 90px;
+  accent-color: var(--accent);
+}
+
+.slider-field .mono {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dock-method {
+  position: relative;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+/* Sliding highlight behind the active segment, positioned via JS (offsetLeft/
+   offsetWidth of the checked button). left/width rather than transform:
+   scaleX would distort the border-radius into an ellipse for a single small,
+   infrequently-clicked control, this is the pragmatic tradeoff. */
+.method-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--accent);
+  transition: left 200ms var(--ease-in-out), width 200ms var(--ease-in-out);
+  pointer-events: none;
+}
+
+.method-btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.method-btn:hover {
+  color: var(--text);
+}
+
+.method-btn:active {
+  transform: scale(0.97);
+}
+
+.method-btn[aria-checked="true"] {
+  color: var(--accent-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .method-indicator {
+    transition-duration: 0.01ms;
+  }
+}
+
+.dock-year {
+  gap: 6px;
+}
+
+.dock-year input[type="number"] {
+  width: 68px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s ease;
+  /* Hide the native stepper (renders inconsistently per browser); typing a
+     specific year is faster than clicking through a 300-year range anyway. */
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.dock-year input[type="number"]::-webkit-outer-spin-button,
+.dock-year input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
   margin: 0;
 }
 
-#runIcon {
-  display: block;
-  margin: auto;
-  width: 24px;
-  height: 24px;
+.dock-year input[type="number"][aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+/* Floating tooltip, not inline content: an inline error would reflow the
+   dock's single-row layout depending on message length, and after today's
+   round of reflow-triggered bugs this deliberately can't touch layout at
+   all. position: fixed with coordinates computed in JS from #yearInput's
+   real screen position (controlsPanel.ts) — it lives outside #controls
+   entirely, so .dock-collapsible's overflow: hidden (needed for the
+   collapse animation) can never clip it, which is what silently ate the
+   message text while still showing the border and arrow poking out. */
+.year-error {
+  position: fixed;
+  z-index: 30;
+  margin: 0;
+  transform: translateY(4px);
+  background: var(--surface-2);
+  border: 1px solid var(--danger);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+.year-error::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--danger);
+}
+
+.year-error.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .year-error {
+    transition-duration: 0.01ms;
+  }
+}
+
+.text-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.text-btn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.text-btn:active {
+  transform: scale(0.97);
+}
+
+.dock-collapse {
+  flex-shrink: 0;
+}
+
+/* Collapsed state: shrink to a playback-only pill. The transition itself is
+   WAAPI-driven from controlsPanel.ts using a FLIP animation: it measures the
+   real rendered size before and after the class toggle (not a guessed
+   "natural" size from clearing constraints on the live element, which is
+   still subject to flex negotiation with its siblings) and animates between
+   those two observed values. It clears its inline override the instant the
+   animation finishes, so the resting state only ever depends on the two
+   rules below: exactly 0 when collapsed, completely unconstrained when not
+   — never a cached number that could go stale after a resize. The inner
+   content fades out faster than the box shrinks so the squeeze itself is
+   never seen, only a clean dissolve. */
+
+.dock-collapsible {
+  /* Must be able to shrink: when a row is too narrow for this box's
+     natural content width, the flex algorithm needs to be able to assign
+     it a smaller, definite width so its own children can wrap within that
+     — flex-shrink: 0 would let it overflow the dock's edge instead. */
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dock-collapsible-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  row-gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 180ms var(--ease-out);
+}
+
+#controls.collapsed .dock-collapsible {
+  max-width: 0;
+  max-height: 0;
+}
+
+#controls.collapsed .dock-collapsible-inner {
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-collapsible-inner {
+    transition-duration: 0.01ms;
+  }
 }
