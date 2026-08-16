@@ -1,12 +1,16 @@
 {
   "scripts": {
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "three": "^0.178.0"
   },
   "devDependencies": {
+    "@types/three": "^0.185.4",
+    "typescript": "^7.0.2",
     "vite": "^7.0.4"
   }
 }
