@@ -36,8 +36,6 @@ float fbm(vec3 p) {
 }
 `;
 
-export const BLOOM_LAYER = 1;
-
 /** Shared by every material below that shades in world space: world normal + world position. */
 const VERTEX_WORLD_GLSL = /* glsl */ `
   varying vec3 vNormalW;
@@ -103,7 +101,7 @@ export function createSunSurfaceMaterial(): THREE.ShaderMaterial {
         float facing = clamp(dot(viewDir, normalize(vNormalW)), 0.0, 1.0);
         float limb = mix(0.6, 1.0, pow(facing, 0.55));
 
-        gl_FragColor = vec4(color * limb * 1.25, 1.0);
+        gl_FragColor = vec4(color * limb, 1.0);
       }
     `,
   });
@@ -355,15 +353,19 @@ export function createStarfield(count: number, radius: number): THREE.Points {
 
 export function createOrbitTrailMaterial(color: number): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
-    uniforms: { trailColor: { value: new THREE.Color(color) } },
+    uniforms: { trailColor: { value: new THREE.Color(color) }, count: { value: 0 } },
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     vertexShader: /* glsl */ `
-      attribute float aAge;
+      attribute float aIndex;
+      uniform float count;
       varying float vAge;
       void main() {
-        vAge = aAge;
+        // Each vertex's buffer slot is fixed at creation; age is purely how far along
+        // the currently-active [0, count) range that slot sits, recomputed here instead
+        // of being rewritten on the CPU every push.
+        vAge = count > 0.0 ? (aIndex + 1.0) / count : 0.0;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,

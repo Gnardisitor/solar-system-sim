@@ -202,6 +202,11 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
       void dockCollapsible.offsetHeight;
       const after = dockCollapsible.getBoundingClientRect();
 
+      // .dock's own width tracks its content (width: max-content), so it resizes on every
+      // frame of this animation — recomputing a backdrop-filter blur against a resizing
+      // region is compositor-hostile and is what makes the collapse feel janky. Swap to a
+      // flat background for the animation's duration and restore the blur once at rest.
+      panel.classList.add("dock-collapsing");
       const anim = dockCollapsible.animate(
         [
           { maxWidth: `${before.width}px`, maxHeight: `${before.height}px` },
@@ -212,6 +217,7 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
       anim.addEventListener("finish", () => {
         dockCollapsible.style.maxWidth = "";
         dockCollapsible.style.maxHeight = "";
+        panel.classList.remove("dock-collapsing");
       });
     } else {
       panel.classList.toggle("collapsed");

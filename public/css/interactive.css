@@ -123,6 +123,15 @@ body {
   }
 }
 
+/* Suspended for the collapse/expand animation (controlsPanel.ts): .dock's width
+   tracks its content, so it resizes every frame of that animation, and recomputing
+   a blur against a resizing backdrop region every frame is compositor-hostile. */
+.dock.dock-collapsing {
+  background: rgba(18, 21, 29, 0.88);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* Purely cosmetic: hides the group dividers once they'd otherwise sit at
    odd spots mid-wrap. Nothing structural depends on this width — get it
    wrong and a divider looks slightly out of place, nothing goes off-screen,

@@ -28,7 +28,7 @@ interface PlanetDefinition extends PlanetSpec {
 // makes it the fastest spinner, and the sign matches each planet's real rotation direction
 // (Venus and Uranus are retrograde).
 const PLANETS: readonly PlanetDefinition[] = [
-  { name: "sun", mass: 1.989e30, radius: 0.22, rotationSpeed: 0.0027, isSun: true, textureUrl: `${base}textures/sun.webp` },
+  { name: "sun", mass: 1.989e30, radius: 0.22, rotationSpeed: 0.0027, isSun: true },
   {
     name: "mercury",
     mass: 3.301e23,

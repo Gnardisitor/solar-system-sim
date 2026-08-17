@@ -7,7 +7,6 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import type { Vec3 } from "./physics";
 import {
-  BLOOM_LAYER,
   createAtmosphereMaterial,
   createCloudsMaterial,
   createNebulaMaterial,
@@ -36,7 +35,8 @@ export interface AtmosphereSpec {
 export interface PlanetSpec {
   name: string;
   radius: number;
-  textureUrl: string;
+  /** Required unless isSun — the sun's surface is fully procedural and never samples a texture. */
+  textureUrl?: string;
   rotationSpeed: number;
   isSun?: boolean;
   /** Rim-glow atmosphere shell; omit for airless bodies. */
@@ -73,24 +73,28 @@ export interface SolarSystemScene {
 /** Fixed-capacity trail buffer: writes in place and only pays for a copy when it wraps, not every frame. */
 class OrbitTrail {
   readonly line: THREE.Line;
+  private readonly material: THREE.ShaderMaterial;
   private readonly positions: Float32Array;
-  private readonly ages: Float32Array;
   private readonly positionAttr: THREE.BufferAttribute;
-  private readonly ageAttr: THREE.BufferAttribute;
   private readonly capacity: number;
   private count = 0;
 
   constructor(capacity: number, color: number) {
     this.capacity = capacity;
     this.positions = new Float32Array(capacity * 3);
-    this.ages = new Float32Array(capacity);
+    // aIndex is each vertex's fixed buffer slot (0..capacity-1), uploaded once and never
+    // touched again. Age is (aIndex + 1) / count, computed in the vertex shader against the
+    // `count` uniform below — so a push only ever costs one uniform write, not an O(count)
+    // CPU rewrite of a per-vertex age array.
+    const indices = new Float32Array(capacity);
+    for (let k = 0; k < capacity; k++) indices[k] = k;
     const geometry = new THREE.BufferGeometry();
     this.positionAttr = new THREE.BufferAttribute(this.positions, 3);
-    this.ageAttr = new THREE.BufferAttribute(this.ages, 1);
     geometry.setAttribute("position", this.positionAttr);
-    geometry.setAttribute("aAge", this.ageAttr);
+    geometry.setAttribute("aIndex", new THREE.BufferAttribute(indices, 1));
     geometry.setDrawRange(0, 0);
-    this.line = new THREE.Line(geometry, createOrbitTrailMaterial(color));
+    this.material = createOrbitTrailMaterial(color);
+    this.line = new THREE.Line(geometry, this.material);
   }
 
   push(position: Vec3): void {
@@ -105,16 +109,14 @@ class OrbitTrail {
     this.positions[i + 2] = position[2];
     this.count++;
 
-    for (let k = 0; k < this.count; k++) this.ages[k] = (k + 1) / this.count;
-
+    this.material.uniforms["count"]!.value = this.count;
     this.positionAttr.needsUpdate = true;
-    this.ageAttr.needsUpdate = true;
     this.line.geometry.setDrawRange(0, this.count);
   }
 
   dispose(): void {
     this.line.geometry.dispose();
-    (this.line.material as THREE.Material).dispose();
+    this.material.dispose();
   }
 }
 
@@ -138,6 +140,8 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   const bodies: Body[] = [];
   const timeUniformMaterials: THREE.ShaderMaterial[] = [];
   const sunFacingMaterials: THREE.ShaderMaterial[] = [];
+  type Darkenable = THREE.Mesh | THREE.Points | THREE.Line;
+  const nonBloomObjects: Darkenable[] = [];
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(canvas.clientWidth, canvas.clientHeight);
@@ -158,10 +162,12 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   const nebula = new THREE.Mesh(new THREE.SphereGeometry(BACKDROP_RADIUS, 48, 32), nebulaMaterial);
   scene.add(nebula);
   timeUniformMaterials.push(nebulaMaterial);
+  nonBloomObjects.push(nebula);
 
   const starfield = createStarfield(STAR_COUNT, BACKDROP_RADIUS * 0.9);
   scene.add(starfield);
   timeUniformMaterials.push(starfield.material as THREE.ShaderMaterial);
+  nonBloomObjects.push(starfield);
 
   // decay: 0 (no falloff) is deliberate — with real inverse-square falloff, Neptune at
   // ~30 AU would be ~5600x dimmer than Mercury at ~0.4 AU and vanish entirely. A modest
@@ -170,29 +176,30 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
   scene.add(ambientLight);
 
-  // Selective bloom: the sun renders on BLOOM_LAYER. Every frame, everything
-  // else is swapped to a black material, rendered through a dedicated bloom
-  // composer, restored, then the real scene is rendered and the bloom result
-  // is additively mixed on top.
-  const bloomLayer = new THREE.Layers();
-  bloomLayer.set(BLOOM_LAYER);
+  // Selective bloom: only the sun should glow. The bloom composer still has to
+  // render every other object (darkened to flat black) rather than just skip them,
+  // so they keep occluding the sun in the bloom pass's depth buffer too — otherwise
+  // the sun's glow would shine straight through any planet in front of it. This
+  // walks a flat list built as bodies are added instead of scene.traverse(), since
+  // the scene graph only ever holds a handful of objects that need darkening.
   const darkMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
   const darkPointsMaterial = new THREE.PointsMaterial({ color: 0x000000, size: 0 });
   const darkLineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-  const materialCache = new Map<THREE.Object3D, THREE.Material | THREE.Material[]>();
+  const materialCache = new Map<Darkenable, THREE.Material | THREE.Material[]>();
 
-  function darkenNonBloomed(obj: THREE.Object3D): void {
-    const withMaterial = obj as THREE.Object3D & { material?: THREE.Material | THREE.Material[]; isPoints?: boolean; isLine?: boolean };
-    if (!withMaterial.material || bloomLayer.test(obj.layers)) return;
-    materialCache.set(obj, withMaterial.material);
-    withMaterial.material = withMaterial.isPoints ? darkPointsMaterial : withMaterial.isLine ? darkLineMaterial : darkMaterial;
+  function darkenNonBloomed(): void {
+    for (const obj of nonBloomObjects) {
+      materialCache.set(obj, obj.material);
+      obj.material = (obj as THREE.Points).isPoints ? darkPointsMaterial : (obj as THREE.Line).isLine ? darkLineMaterial : darkMaterial;
+    }
   }
 
-  function restoreMaterial(obj: THREE.Object3D): void {
-    const cached = materialCache.get(obj);
-    if (!cached) return;
-    (obj as THREE.Object3D & { material: THREE.Material | THREE.Material[] }).material = cached;
-    materialCache.delete(obj);
+  function restoreMaterial(): void {
+    for (const obj of nonBloomObjects) {
+      const cached = materialCache.get(obj);
+      if (cached) obj.material = cached;
+    }
+    materialCache.clear();
   }
 
   function sizeVector(): THREE.Vector2 {
@@ -201,7 +208,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
 
   const renderScene = new RenderPass(scene, camera);
 
-  const bloomPass = new UnrealBloomPass(sizeVector(), 0.75, 0.35, 0.0);
+  const bloomPass = new UnrealBloomPass(sizeVector(), 0.5, 0.35, 0.0);
   const bloomComposer = new EffectComposer(renderer);
   bloomComposer.renderToScreen = false;
   bloomComposer.addPass(renderScene);
@@ -261,13 +268,14 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
       const sunMaterial = createSunSurfaceMaterial();
       material = sunMaterial;
       mesh = new THREE.Mesh(geometry, material);
-      mesh.layers.enable(BLOOM_LAYER);
       mesh.add(sunLight);
       timeUniformMaterials.push(sunMaterial);
     } else {
+      if (!spec.textureUrl) throw new Error(`Missing textureUrl for body "${spec.name}"`);
       const texture = textureLoader.load(spec.textureUrl);
       material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9, metalness: 0.0 });
       mesh = new THREE.Mesh(geometry, material);
+      nonBloomObjects.push(mesh);
     }
     scene.add(mesh);
 
@@ -278,6 +286,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
       scene.add(atmosphereMesh);
       atmosphere = { mesh: atmosphereMesh, material: atmosphereMaterial };
       sunFacingMaterials.push(atmosphereMaterial);
+      nonBloomObjects.push(atmosphereMesh);
     }
 
     let clouds: Shell | null = null;
@@ -288,6 +297,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
       clouds = { mesh: cloudsMesh, material: cloudsMaterial };
       sunFacingMaterials.push(cloudsMaterial);
       timeUniformMaterials.push(cloudsMaterial);
+      nonBloomObjects.push(cloudsMesh);
     }
 
     let ring: Shell | null = null;
@@ -300,10 +310,14 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
       scene.add(ringMesh);
       ring = { mesh: ringMesh, material: ringMaterial };
       sunFacingMaterials.push(ringMaterial);
+      nonBloomObjects.push(ringMesh);
     }
 
     const trail = spec.isSun ? null : new OrbitTrail(ORBIT_TRAIL_CAPACITY, spec.trailColor ?? 0xffffff);
-    if (trail) scene.add(trail.line);
+    if (trail) {
+      scene.add(trail.line);
+      nonBloomObjects.push(trail.line);
+    }
 
     bodies.push({ mesh, material, trail, atmosphere, clouds, ring });
   }
@@ -364,8 +378,10 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     for (const body of bodies) disposeBody(body);
     bodies.length = 0;
     sunFacingMaterials.length = 0;
-    // Sun/clouds materials get re-pushed by addBody; drop stale refs to sun-owned ones.
-    timeUniformMaterials.length = 2; // nebula + starfield, added once at scene creation
+    // Sun/clouds materials and darkenable meshes get re-pushed by addBody; drop stale
+    // refs to body-owned ones, keeping only what's added once at scene creation.
+    timeUniformMaterials.length = 2; // nebula + starfield
+    nonBloomObjects.length = 2; // nebula + starfield
   }
 
   function start(onTick: (deltaSeconds: number) => void): void {
@@ -386,9 +402,9 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
         if (time) time.value = elapsed;
       }
 
-      scene.traverse(darkenNonBloomed);
+      darkenNonBloomed();
       bloomComposer.render();
-      scene.traverse(restoreMaterial);
+      restoreMaterial();
       finalComposer.render();
     });
   }
