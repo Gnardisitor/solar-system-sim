@@ -8,16 +8,100 @@ interface PlanetDefinition extends PlanetSpec {
   mass: number;
 }
 
+// Radii follow real relative planet sizes via radius_earth_relative^(1/3) (compressed so
+// the range stays navigable), anchored so Earth keeps its original scale — e.g. Jupiter's
+// real radius is ~10.97x Earth's, and 10.97^(1/3) * 0.16 = 0.355, which is exactly its
+// radius below. Two bodies are deliberately kept off that curve:
+//  - Mercury stays at its original (smaller than the curve would give) size. At these
+//    AU-accurate orbit distances, Mercury's real perihelion (~0.307 AU) leaves only a
+//    sliver of clearance from the sun's surface, so it has to stay small enough that the
+//    two never visually overlap.
+//  - The sun is capped for the same reason and, as a result, ends up with a smaller radius
+//    than Jupiter or Saturn — the real sun/Jupiter ratio (~9.7x) simply doesn't fit in the
+//    clearance Mercury's orbit leaves. In practice this never reads as wrong on screen:
+//    the sun and the gas giants are 5+ AU apart and are never framed together, so there's
+//    no shot where the size inversion is visible.
+//
+// Rotation speeds are 2*pi / sidereal_rotation_period_in_days, scaled by the same constant
+// (derived from Earth's own period) so a full spin still takes a sensible amount of sim
+// time — e.g. Venus's real 243-day "day" makes it nearly motionless, Jupiter's 10-hour day
+// makes it the fastest spinner, and the sign matches each planet's real rotation direction
+// (Venus and Uranus are retrograde).
 const PLANETS: readonly PlanetDefinition[] = [
-  { name: "sun", mass: 1.989e30, radius: 0.22, rotationSpeed: 0.0001, isSun: true, textureUrl: `${base}textures/sun.webp` },
-  { name: "mercury", mass: 3.301e23, radius: 0.07, rotationSpeed: 0.017, textureUrl: `${base}textures/mercury.webp` },
-  { name: "venus", mass: 4.868e24, radius: 0.15, rotationSpeed: -0.017, textureUrl: `${base}textures/venus.webp` },
-  { name: "earth", mass: 5.972e24, radius: 0.16, rotationSpeed: 0.0729, textureUrl: `${base}textures/earth.webp` },
-  { name: "mars", mass: 6.417e23, radius: 0.08, rotationSpeed: 0.0708, textureUrl: `${base}textures/mars.webp` },
-  { name: "jupiter", mass: 1.898e27, radius: 0.2, rotationSpeed: 0.174, textureUrl: `${base}textures/jupiter.webp` },
-  { name: "saturn", mass: 5.683e26, radius: 0.19, rotationSpeed: 0.164, textureUrl: `${base}textures/saturn.webp` },
-  { name: "uranus", mass: 8.681e25, radius: 0.3, rotationSpeed: -0.097, textureUrl: `${base}textures/uranus.webp` },
-  { name: "neptune", mass: 1.024e26, radius: 0.3, rotationSpeed: 0.096, textureUrl: `${base}textures/neptune.webp` },
+  { name: "sun", mass: 1.989e30, radius: 0.22, rotationSpeed: 0.0027, isSun: true, textureUrl: `${base}textures/sun.webp` },
+  {
+    name: "mercury",
+    mass: 3.301e23,
+    radius: 0.07,
+    rotationSpeed: 0.00124,
+    textureUrl: `${base}textures/mercury.webp`,
+    trailColor: 0x9c9c9c,
+  },
+  {
+    name: "venus",
+    mass: 4.868e24,
+    radius: 0.157,
+    rotationSpeed: -0.0003,
+    textureUrl: `${base}textures/venus.webp`,
+    atmosphere: { color: 0xe0c68f, intensity: 0.85 },
+    trailColor: 0xe0c68f,
+  },
+  {
+    name: "earth",
+    mass: 5.972e24,
+    radius: 0.16,
+    rotationSpeed: 0.0729,
+    textureUrl: `${base}textures/earth.webp`,
+    atmosphere: { color: 0x6ca8ff, intensity: 0.7 },
+    clouds: true,
+    trailColor: 0x6ca8ff,
+  },
+  {
+    name: "mars",
+    mass: 6.417e23,
+    radius: 0.13,
+    rotationSpeed: 0.0708,
+    textureUrl: `${base}textures/mars.webp`,
+    atmosphere: { color: 0xd98a54, intensity: 0.3 },
+    trailColor: 0xd98a54,
+  },
+  {
+    name: "jupiter",
+    mass: 1.898e27,
+    radius: 0.355,
+    rotationSpeed: 0.1758,
+    textureUrl: `${base}textures/jupiter.webp`,
+    atmosphere: { color: 0xd9b38c, intensity: 0.35 },
+    trailColor: 0xd9b38c,
+  },
+  {
+    name: "saturn",
+    mass: 5.683e26,
+    radius: 0.335,
+    rotationSpeed: 0.1637,
+    textureUrl: `${base}textures/saturn.webp`,
+    atmosphere: { color: 0xe8d9a8, intensity: 0.3 },
+    rings: { innerScale: 1.4, outerScale: 2.3, color: 0xb8a97e },
+    trailColor: 0xe8d9a8,
+  },
+  {
+    name: "uranus",
+    mass: 8.681e25,
+    radius: 0.254,
+    rotationSpeed: -0.1012,
+    textureUrl: `${base}textures/uranus.webp`,
+    atmosphere: { color: 0x8fe0e0, intensity: 0.4 },
+    trailColor: 0x8fe0e0,
+  },
+  {
+    name: "neptune",
+    mass: 1.024e26,
+    radius: 0.251,
+    rotationSpeed: 0.1083,
+    textureUrl: `${base}textures/neptune.webp`,
+    atmosphere: { color: 0x4169e1, intensity: 0.45 },
+    trailColor: 0x4169e1,
+  },
 ];
 
 type VectorTable = Record<string, readonly StateVector[]>;
@@ -38,7 +122,7 @@ async function main(): Promise<void> {
     createPhysicsEngine(),
   ]);
 
-  const scene = createSolarSystemScene(canvas, { backgroundTextureUrl: `${base}textures/stars.webp` });
+  const scene = createSolarSystemScene(canvas);
 
   let isLoaded = false;
   let simulatedDate = new Date();
