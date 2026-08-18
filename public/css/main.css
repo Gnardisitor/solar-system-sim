@@ -41,28 +41,50 @@ header {
   }
 }
 
+/* A plain text+icon link, not a bordered pill — the arrow nudges toward the
+   direction it points and the underline draws in, rather than a whole button
+   surface lighting up for a simple "go back". */
 #back-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 13px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px 12px;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  font-weight: 500;
+  transition: color 0.15s ease;
 }
 
 #back-link svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  transition: transform 0.2s var(--ease-out);
+}
+
+#back-link span {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s ease;
 }
 
 #back-link:hover {
   color: var(--text);
-  border-color: var(--accent);
-  background: var(--accent-dim);
+}
+
+#back-link:hover svg {
+  transform: translateX(-3px);
+}
+
+#back-link:hover span {
+  text-decoration-color: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #back-link svg {
+    transition-duration: 0.01ms;
+  }
 }
 
 .title-group {
