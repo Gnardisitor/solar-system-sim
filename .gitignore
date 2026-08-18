@@ -6,6 +6,7 @@ src/nbody.js
 src/nbody.wasm
 extra/api
 extra/api.json
+public/documentation.html
 
 # Build output
 dist/

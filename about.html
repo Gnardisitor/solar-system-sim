@@ -8,14 +8,11 @@
         <link rel="stylesheet" href="./css/main.css">
         <link rel="icon" href="./icons/favicon.ico" sizes="16x16">
         <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
-        <!-- Marked.js for Markdown parsing -->
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <!-- MathJax for LaTeX rendering -->
-        <script>MathJax = {tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]}}</script>
-        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-        <!-- Highlight.js for code rendering -->
-        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+        <!-- documentation.md is rendered to documentation.html at build time (scripts/build-docs.js) —
+             math (KaTeX) and code highlighting are already baked into the markup, so these are just
+             self-hosted stylesheets, not parsing/typesetting libraries. -->
+        <link rel="stylesheet" href="./css/katex/katex.min.css">
+        <link rel="stylesheet" href="./css/hljs-vs2015.css">
     </head>
     <body>
         <header>
@@ -35,13 +32,9 @@
             </section>
         </main>
         <script>
-        // Load and render markdown with LaTeX
-        fetch('./documentation.md').then(response => response.text()).then(md => {
-            document.getElementById('markdown-content').innerHTML = marked.parse(md);
-            if (window.MathJax?.startup?.promise) {
-                window.MathJax.startup.promise.then(() => window.MathJax.typesetPromise());
-            }
-            hljs.highlightAll();
+        // documentation.html is pre-rendered (see scripts/build-docs.js) — just inject it.
+        fetch('./documentation.html').then(response => response.text()).then(html => {
+            document.getElementById('markdown-content').innerHTML = html;
         });
         </script>
     </body>

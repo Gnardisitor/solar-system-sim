@@ -44,26 +44,31 @@ After my first year of university, I had learned many things, especially in my L
 
 To simulate the Solar System, a framework for an N-body simulation must be created. This requires creating a class for any celestial object which is being simulated. Each body requires multiple attributes, which are their mass, their position, velocity, and acceleration vector, as well as some array which must keep the history of the previous positions which the body occupied. To be able to simulate, each body requires an initial position and velocity vector for the initial moment in time. An option is using data from JPL Horizons through astroquery.jplhorizons in Python which can interface with the Horizons API for initial positions at any date. Most simulations executed for this report and during development are started on January 1st, 2000, since it has proven to give stable results. To prevent drift and making the graphs unclear, the velocity of the center of mass of the system must be subtracted from the velocity of all bodies. The formula to compute the velocity of the center of mass is:
 
-<p align="center">
-${\vec{v}}_{CM}=\frac{\sum_{i}{m_i{\vec{v}}_i}}{\sum_{i}\ m_i}$
+$$
+{\vec{v}}_{CM}=\frac{\sum_{i}{m_i{\vec{v}}_i}}{\sum_{i}\ m_i}
+$$
 
 This gives us a stable starting point for the simulation. To compute the next steps, acceleration between bodies is required to be computed. The formula for acceleration between two bodies is:
 
-<p align="center">
-$\vec{a}=\frac{GM\vec{r}}{r^3}$
+$$
+\vec{a}=\frac{GM\vec{r}}{r^3}
+$$
 
 In this formula, M is the mass of the other body. To compute the acceleration for a body in the whole system, sum all the accelerations:
 
-<p align="center">
-$\vec{a}=\sum_{i}\frac{GM_i{\vec{r}}_i}{r_i^3}$
+$$
+\vec{a}=\sum_{i}\frac{GM_i{\vec{r}}_i}{r_i^3}
+$$
 
 For the acceleration formulas, $\vec{r}$ is gotten through the formula $\vec{r}={\vec{r}}_2-{\vec{r}}_1$. After getting the acceleration for all the bodies, the new velocities and positions must be computed. To compute these new vectors, there are multiple approximation methods which can be used. The simplest and most common one is the Euler-Cromer method:
 
-<p align="center">
-${\vec{v}}_{n+1}={\vec{v}}_n+\left(\vec{a}\cdot h\right)$
+$$
+{\vec{v}}_{n+1}={\vec{v}}_n+\left(\vec{a}\cdot h\right)
+$$
 
-<p align="center">
-${\vec{x}}_{n+1}={\vec{x}}_n+\left({\vec{v}}_n\cdot h\right)$
+$$
+{\vec{x}}_{n+1}={\vec{x}}_n+\left({\vec{v}}_n\cdot h\right)
+$$
 
 ```c
 void euler(double step) {
@@ -87,14 +92,17 @@ void euler(double step) {
 
 To get the new vectors, the acceleration and velocities are multiplied by the time interval h. This method is very simple and fast to compute but gives inaccurate results when the time interval is too big. Another method which is preferred for N-body simulations is Verlet since it conserves angular momentum. The version which was tested with this program is position Verlet:
 
-<p align="center">
-${\vec{x}}_{n+0.5}={\vec{x}}_n+\left(0.5\cdot{\vec{v}}_n\cdot h\right)$
+$$
+{\vec{x}}_{n+0.5}={\vec{x}}_n+\left(0.5\cdot{\vec{v}}_n\cdot h\right)
+$$
 
-<p align="center">
-${\vec{v}}_{n+1}={\vec{v}}_n+\left(\vec{a}\cdot h\right)$
+$$
+{\vec{v}}_{n+1}={\vec{v}}_n+\left(\vec{a}\cdot h\right)
+$$
 
-<p align="center">
-${\vec{x}}_{n+1}={\vec{x}}_{n+0.5}+\left(0.5\cdot{\vec{v}}_{n+1}\cdot h\right)$
+$$
+{\vec{x}}_{n+1}={\vec{x}}_{n+0.5}+\left(0.5\cdot{\vec{v}}_{n+1}\cdot h\right)
+$$
 
 This version computes an extra step by computing the distance at half a time interval h, then computing the new velocity and using it to compute the final position. It will therefore be more accurate than the Newton method, although in testing the differences weren't drastic and barely visible. There is another implementation of Verlet which only requires two lines. However, it produced unstable orbits which were unusable in the program, therefore only the method above is implemented in the code.
 
@@ -127,20 +135,25 @@ void verlet(double step) {
 
 The final and most used approximation method used in this program is the Runge-Kutta Fourth Order (RK4) method, which approximates the positions at multiple points and computes a weighted average to give the final position and velocity. The RK4 formulas are:
 
-<p align="center">
-$k_1=f\left(t_n,\ \ y_n\right)$
+$$
+k_1=f\left(t_n,\ \ y_n\right)
+$$
 
-<p align="center">
-$k_2=f\left(t_n+\frac{h}{2},\ \ y_n+h\frac{k_1}{2}\right)$
+$$
+k_2=f\left(t_n+\frac{h}{2},\ \ y_n+h\frac{k_1}{2}\right)
+$$
 
-<p align="center">
-$k_3=f\left(t_n+\frac{h}{2},\ \ y_n+h\frac{k_2}{2}\right)$
+$$
+k_3=f\left(t_n+\frac{h}{2},\ \ y_n+h\frac{k_2}{2}\right)
+$$
 
-<p align="center">
-$k_4=f\left(t_n+h,\ \ y_n+hk_3\right)$
+$$
+k_4=f\left(t_n+h,\ \ y_n+hk_3\right)
+$$
 
-<p align="center">
-$y_{n+1}=y_n+\frac{h}{6}\left(k_1+{2k}_2+2k_3+k_4\right)$
+$$
+y_{n+1}=y_n+\frac{h}{6}\left(k_1+{2k}_2+2k_3+k_4\right)
+$$
 
 The Runge-Kutta Fourth Order method functions by taking the derivative multiple times, which is represented by $f(t, y)$, where t is the moment in time when the derivative is to take place, and $y$ is an array containing both the position and velocity vectors. The derivative of $y$ therefore is the velocity and acceleration vectors of the body at that moment in time. $k_1$ is therefore the initial velocity and acceleration vectors of the body. $k_2$ is the velocity and acceleration vectors at half a time interval h with position and velocity vectors derived from the velocity and acceleration vectors derived in $k_1$. RK4 therefore uses the previous approximation for the next one. For all four values of $k$, the new velocity and acceleration at the new point must first begin at the initial position.
 
