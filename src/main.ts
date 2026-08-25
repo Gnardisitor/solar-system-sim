@@ -8,25 +8,14 @@ interface PlanetDefinition extends PlanetSpec {
   mass: number;
 }
 
-// Radii follow real relative planet sizes via radius_earth_relative^(1/3) (compressed so
-// the range stays navigable), anchored so Earth keeps its original scale — e.g. Jupiter's
-// real radius is ~10.97x Earth's, and 10.97^(1/3) * 0.16 = 0.355, which is exactly its
-// radius below. Two bodies are deliberately kept off that curve:
-//  - Mercury stays at its original (smaller than the curve would give) size. At these
-//    AU-accurate orbit distances, Mercury's real perihelion (~0.307 AU) leaves only a
-//    sliver of clearance from the sun's surface, so it has to stay small enough that the
-//    two never visually overlap.
-//  - The sun is capped for the same reason and, as a result, ends up with a smaller radius
-//    than Jupiter or Saturn — the real sun/Jupiter ratio (~9.7x) simply doesn't fit in the
-//    clearance Mercury's orbit leaves. In practice this never reads as wrong on screen:
-//    the sun and the gas giants are 5+ AU apart and are never framed together, so there's
-//    no shot where the size inversion is visible.
+// Radii scale as radius_earth_relative^(1/3), anchored to Earth's own radius. Mercury and
+// the sun are capped smaller than that curve gives, so they don't overlap at Mercury's
+// real (tight) perihelion distance. As a side effect the sun ends up smaller than Jupiter,
+// which never reads as wrong since they're never framed together.
 //
-// Rotation speeds are 2*pi / sidereal_rotation_period_in_days, scaled by the same constant
-// (derived from Earth's own period) so a full spin still takes a sensible amount of sim
-// time — e.g. Venus's real 243-day "day" makes it nearly motionless, Jupiter's 10-hour day
-// makes it the fastest spinner, and the sign matches each planet's real rotation direction
-// (Venus and Uranus are retrograde).
+// Rotation speeds are 2*pi / sidereal_period_days, scaled so a spin still takes a sensible
+// amount of sim time; sign matches each planet's real rotation direction (Venus, Uranus are
+// retrograde).
 const PLANETS: readonly PlanetDefinition[] = [
   { name: "sun", mass: 1.989e30, radius: 0.22, rotationSpeed: 0.0027, isSun: true },
   {

@@ -36,7 +36,7 @@ export interface AtmosphereSpec {
 export interface PlanetSpec {
   name: string;
   radius: number;
-  /** Required unless isSun — the sun's surface is fully procedural and never samples a texture. */
+  /** Required unless isSun. */
   textureUrl?: string;
   rotationSpeed: number;
   isSun?: boolean;
@@ -55,11 +55,7 @@ export interface BodyUpdate {
 }
 
 export interface SolarSystemScene {
-  /**
-   * Adds a body's mesh (and, unless it's the sun, an orbit trail) to the
-   * scene. Bodies must be added in the same order their positions will
-   * later be supplied to setPositions — index in, index out.
-   */
+  /** Adds a body's mesh (and orbit trail, unless it's the sun). Add order must match setPositions order. */
   addBody(spec: PlanetSpec): void;
   /** One update per body added so far, in addBody order. First body is treated as the light source (the sun). */
   setPositions(updates: readonly BodyUpdate[]): void;
@@ -83,10 +79,8 @@ class OrbitTrail {
   constructor(capacity: number, color: number) {
     this.capacity = capacity;
     this.positions = new Float32Array(capacity * 3);
-    // aIndex is each vertex's fixed buffer slot (0..capacity-1), uploaded once and never
-    // touched again. Age is (aIndex + 1) / count, computed in the vertex shader against the
-    // `count` uniform below — so a push only ever costs one uniform write, not an O(count)
-    // CPU rewrite of a per-vertex age array.
+    // aIndex is each vertex's fixed slot; the shader derives age from it against
+    // the `count` uniform, so a push costs one uniform write, not a CPU rewrite.
     const indices = new Float32Array(capacity);
     for (let k = 0; k < capacity; k++) indices[k] = k;
     const geometry = new THREE.BufferGeometry();
@@ -170,19 +164,15 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   timeUniformMaterials.push(starfield.material as THREE.ShaderMaterial);
   nonBloomObjects.push(starfield);
 
-  // decay: 0 (no falloff) is deliberate — with real inverse-square falloff, Neptune at
-  // ~30 AU would be ~5600x dimmer than Mercury at ~0.4 AU and vanish entirely. A modest
-  // flat intensity keeps every planet visibly lit without blowing out the inner ones.
+  // decay: 0 is deliberate: real inverse-square falloff would leave Neptune ~5600x
+  // dimmer than Mercury and effectively invisible.
   const sunLight = new THREE.PointLight(0xfff2d0, 1.3, 0, 0);
   const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
   scene.add(ambientLight);
 
-  // Selective bloom: only the sun should glow. The bloom composer still has to
-  // render every other object (darkened to flat black) rather than just skip them,
-  // so they keep occluding the sun in the bloom pass's depth buffer too — otherwise
-  // the sun's glow would shine straight through any planet in front of it. This
-  // walks a flat list built as bodies are added instead of scene.traverse(), since
-  // the scene graph only ever holds a handful of objects that need darkening.
+  // Selective bloom: only the sun glows. Everything else is darkened to flat black
+  // rather than skipped, so it still occludes the sun in the bloom pass's depth
+  // buffer (otherwise the glow would shine through planets in front of it).
   const darkMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
   const darkPointsMaterial = new THREE.PointsMaterial({ color: 0x000000, size: 0 });
   const darkLineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
@@ -381,8 +371,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     for (const body of bodies) disposeBody(body);
     bodies.length = 0;
     sunFacingMaterials.length = 0;
-    // Sun/clouds materials and darkenable meshes get re-pushed by addBody; drop stale
-    // refs to body-owned ones, keeping only what's added once at scene creation.
+    // Keep only the scene-creation entries; body-owned ones get re-pushed by addBody.
     timeUniformMaterials.length = 2; // nebula + starfield
     nonBloomObjects.length = 2; // nebula + starfield
   }
@@ -394,9 +383,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
       onTick(delta);
       controls.update();
 
-      // The backdrop is meant to read as infinitely distant, so it must never show
-      // parallax as the camera orbits — keep it centered on the camera every frame,
-      // the standard skybox trick, rather than fixed at the world origin.
+      // Skybox trick: keep the backdrop centered on the camera so it never shows parallax.
       nebula.position.copy(camera.position);
       starfield.position.copy(camera.position);
 

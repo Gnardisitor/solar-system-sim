@@ -8,8 +8,8 @@
         <link rel="stylesheet" href="./css/main.css">
         <link rel="icon" href="./icons/favicon.ico" sizes="16x16">
         <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
-        <!-- documentation.md is rendered to documentation.html at build time (scripts/build-docs.ts) —
-             math (KaTeX) and code highlighting are already baked into the markup, so these are just
+        <!-- documentation.md is rendered to documentation.html at build time (scripts/build-docs.ts).
+             Math (KaTeX) and code highlighting are already baked into the markup, so these are just
              self-hosted stylesheets, not parsing/typesetting libraries. -->
         <link rel="stylesheet" href="./css/katex/katex.min.css">
         <link rel="stylesheet" href="./css/hljs-vs2015.css">
@@ -28,11 +28,11 @@
         <main>
             <section>
                 <h2>About the project</h2>
-                <div id="markdown-content">Loading…</div>
+                <div id="markdown-content">Loading...</div>
             </section>
         </main>
         <script>
-        // documentation.html is pre-rendered (see scripts/build-docs.js) — just inject it.
+        // documentation.html is pre-rendered (see scripts/build-docs.js), so this just injects it.
         fetch('./documentation.html').then(response => response.text()).then(html => {
             document.getElementById('markdown-content').innerHTML = html;
         });

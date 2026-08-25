@@ -1,10 +1,6 @@
 import * as THREE from "three";
 
-/**
- * Cheap trilinear value-noise + fbm, shared by every procedural shader below.
- * Not simplex-quality, but stable, branch-free, and plenty for stylized
- * plasma/cloud/nebula patterns at the resolution these render at.
- */
+/** Cheap trilinear value-noise + fbm, shared by every procedural shader below. */
 const NOISE_GLSL = /* glsl */ `
 float hash13(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -58,10 +54,7 @@ const VERTEX_LOCAL_GLSL = /* glsl */ `
   }
 `;
 
-// ---------------------------------------------------------------------------
-// Sun: turbulent, self-lit plasma surface (no external light needed). Feeds
-// the selective bloom pass directly — no separate corona shell.
-// ---------------------------------------------------------------------------
+// --- Sun: turbulent, self-lit plasma surface, feeds bloom directly ---
 
 export function createSunSurfaceMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -83,8 +76,7 @@ export function createSunSurfaceMaterial(): THREE.ShaderMaterial {
       ${NOISE_GLSL}
 
       void main() {
-        // Direction-based sampling (not raw world position) so the noise
-        // frequency is independent of the sun's actual radius in scene units.
+        // Sample by direction, not world position, so noise scale is radius-independent.
         vec3 p = normalize(vPosW) * 16.0;
         vec3 warp = vec3(
           fbm(p * 1.6 + vec3(0.0, 0.0, time * 0.05)),
@@ -107,9 +99,7 @@ export function createSunSurfaceMaterial(): THREE.ShaderMaterial {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Planet atmosphere: fresnel rim-glow shell, dimmed on the night side.
-// ---------------------------------------------------------------------------
+// --- Planet atmosphere: fresnel rim-glow shell, dimmed on the night side ---
 
 export function createAtmosphereMaterial(color: number, intensity: number): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -142,9 +132,7 @@ export function createAtmosphereMaterial(color: number, intensity: number): THRE
   });
 }
 
-// ---------------------------------------------------------------------------
-// Procedural cloud shell (Earth-style): drifting fbm coverage, terminator-lit.
-// ---------------------------------------------------------------------------
+// --- Procedural cloud shell: drifting fbm coverage, terminator-lit ---
 
 export function createCloudsMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -168,9 +156,7 @@ export function createCloudsMaterial(): THREE.ShaderMaterial {
         vec3 dir = normalize(vPosL);
         vec3 p = dir * 3.0 + vec3(time * 0.012, 0.0, time * 0.006);
 
-        // Domain-warped fbm: feed fbm's own output back in as a coordinate offset so
-        // coverage forms wispy, streaked bands instead of round, evenly-spaced blobs —
-        // the same trick that makes the sun's plasma read as turbulent rather than blotchy.
+        // Domain-warped fbm gives wispy, streaked bands instead of round blobs.
         float warpX = fbm(p * 1.1 + vec3(5.2, 1.3, 0.0));
         float warpY = fbm(p * 1.1 + vec3(1.7, 9.2, 4.4));
         vec3 warped = p + vec3(warpX, warpY, warpX - warpY) * 1.1;
@@ -191,9 +177,7 @@ export function createCloudsMaterial(): THREE.ShaderMaterial {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Saturn-style rings: banded radial noise with a soft inner/outer falloff.
-// ---------------------------------------------------------------------------
+// --- Saturn-style rings: banded radial noise with soft inner/outer falloff ---
 
 export function createRingMaterial(color: number, innerRadius: number, outerRadius: number): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -232,9 +216,7 @@ export function createRingMaterial(color: number, innerRadius: number, outerRadi
   });
 }
 
-// ---------------------------------------------------------------------------
-// Background: deep-space nebula backdrop + procedural twinkling starfield.
-// ---------------------------------------------------------------------------
+// --- Background: deep-space nebula backdrop + procedural twinkling starfield ---
 
 export function createNebulaMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -259,8 +241,7 @@ export function createNebulaMaterial(): THREE.ShaderMaterial {
         vec3 p = normalize(vPosL) * 1.6;
         float n = fbm(p * 1.8 + vec3(0.0, 0.0, time * 0.0015));
 
-        // Rich, near-black space: an almost imperceptible dust gradient,
-        // not a colorful nebula. Deliberately low-contrast and desaturated.
+        // Near-black space with a barely-visible dust gradient, not a colorful nebula.
         vec3 deep = vec3(0.0, 0.0, 0.0);
         vec3 dust = vec3(0.014, 0.014, 0.017);
 
@@ -346,10 +327,7 @@ export function createStarfield(count: number, radius: number): THREE.Points {
   return points;
 }
 
-// ---------------------------------------------------------------------------
-// Orbit trail: fixed-capacity ring buffer with a per-vertex age fade so the
-// tail dissolves smoothly instead of ending in a hard cut.
-// ---------------------------------------------------------------------------
+// --- Orbit trail: per-vertex age fade so the tail dissolves instead of cutting hard ---
 
 export function createOrbitTrailMaterial(color: number): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -362,9 +340,7 @@ export function createOrbitTrailMaterial(color: number): THREE.ShaderMaterial {
       uniform float count;
       varying float vAge;
       void main() {
-        // Each vertex's buffer slot is fixed at creation; age is purely how far along
-        // the currently-active [0, count) range that slot sits, recomputed here instead
-        // of being rewritten on the CPU every push.
+        // Age = how far this fixed slot sits within the currently-active [0, count) range.
         vAge = count > 0.0 ? (aIndex + 1.0) / count : 0.0;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }

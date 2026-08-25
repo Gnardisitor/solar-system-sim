@@ -9,12 +9,7 @@ export type SimulationMethod = "euler" | "verlet" | "rk4";
 
 const METHOD_CODE: Record<SimulationMethod, number> = { euler: 0, verlet: 1, rk4: 2 };
 
-/**
- * The C simulation works entirely in "render space": JPL's (x, y, z) is
- * stored here as (x, z, y). It's a coordinate swap, not a rotation, so it
- * doesn't affect the physics — but it means positions can be handed straight
- * to Three.js without a second conversion at the call site.
- */
+/** Swaps JPL's (x, y, z) to (x, z, y) so positions can go straight into Three.js. */
 export function toRenderSpace(raw: StateVector): { position: Vec3; velocity: Vec3 } {
   const [x, y, z, vx, vy, vz] = raw;
   return { position: [x, z, y], velocity: [vx, vz, vy] };

@@ -61,10 +61,8 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
   stepText.textContent = `${stepDays} d`;
   stepTimeText.textContent = `${updateIntervalSeconds} s`;
 
-  // Mobile starts collapsed to a playback-only pill — the full control set
-  // takes real screen space to scan on a small screen, and touch users are
-  // already used to expanding a compact bar on demand. No animation here:
-  // this sets the initial resting state before first paint, not a toggle.
+  // Mobile starts collapsed to a playback-only pill. No animation: this sets the
+  // initial resting state before first paint, not a toggle.
   if (window.matchMedia("(max-width: 640px)").matches) {
     panel.classList.add("collapsed");
     collapseBtn.title = "Expand";
@@ -80,8 +78,7 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
   }
 
   if (initialMethodBtn) moveIndicatorTo(initialMethodBtn);
-  // Button widths depend on the real font's metrics; reposition once it's
-  // loaded in case the fallback font measured them slightly differently.
+  // Reposition once the real font loads, in case the fallback measured differently.
   document.fonts?.ready.then(() => {
     if (initialMethodBtn) moveIndicatorTo(initialMethodBtn);
   });
@@ -100,9 +97,8 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
       method = value;
       for (const other of methodButtons) other.setAttribute("aria-checked", String(other === btn));
       moveIndicatorTo(btn);
-      // Small confirmation pop on the newly-picked label, layered on top of
-      // the indicator's slide. Same curve as --ease-out (WAAPI can't read
-      // CSS custom properties, so it's copied here rather than invented).
+      // Confirmation pop on the picked label. Curve matches --ease-out (WAAPI can't
+      // read CSS custom properties, so it's copied here).
       if (!reduceMotion) {
         btn.animate([{ transform: "scale(0.94)" }, { transform: "scale(1)" }], {
           duration: 180,
@@ -131,9 +127,7 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
   };
 
   // #yearError lives outside #controls (see index.html) so .dock-collapsible's
-  // overflow: hidden can never clip it — position: fixed coordinates are
-  // computed here from #yearInput's real screen position instead of via
-  // CSS anchoring.
+  // overflow: hidden can't clip it; position it here from #yearInput's real screen rect.
   function positionYearError(): void {
     const inputRect = yearInput.getBoundingClientRect();
     const errorRect = yearError.getBoundingClientRect();
@@ -160,8 +154,7 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
     yearInput.removeAttribute("aria-invalid");
   }
 
-  // Clearing on input (not just on a successful Set) means the warning
-  // doesn't linger once the user has visibly started correcting it.
+  // Clear on input, not just on a successful Set, so the warning doesn't linger.
   yearInput.addEventListener("input", clearYearError);
 
   setYearBtn.onclick = () => {
@@ -179,18 +172,10 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
   };
 
   collapseBtn.addEventListener("click", () => {
-    // FLIP (First-Last-Invert-Play): measure the real rendered size before
-    // the change, apply the real change, measure the real rendered size
-    // after — then animate between those two *observed* values instead of
-    // a guessed one. Earlier versions tried to guess the "natural" size by
-    // clearing max-width on the live element and reading scrollWidth, but
-    // that element is still governed by flex negotiation with its siblings
-    // in .dock's row, which depends on the very collapse state being
-    // measured mid-change — on a wide test viewport that negotiation
-    // happens to land on the right number anyway, which is exactly how it
-    // passed testing while still being wrong on an actual narrower window.
-    // Letting the browser settle into the real post-toggle layout and
-    // reading *that* has no such assumption to get wrong.
+    // FLIP: measure the real rendered size before and after toggling, then animate
+    // between those observed values. Guessing the "natural" size via scrollWidth
+    // instead was tried and broke on narrow viewports, since that size still depends
+    // on flex negotiation with the collapse state being measured.
     if (dockCollapsibleInner && !reduceMotion) {
       for (const existing of dockCollapsible.getAnimations()) existing.cancel();
       dockCollapsible.style.maxWidth = "";
@@ -198,14 +183,13 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
 
       const before = dockCollapsible.getBoundingClientRect();
       panel.classList.toggle("collapsed");
-      // Force layout to actually settle into the new state before reading it.
+      // Force layout to settle into the new state before reading it.
       void dockCollapsible.offsetHeight;
       const after = dockCollapsible.getBoundingClientRect();
 
-      // .dock's own width tracks its content (width: max-content), so it resizes on every
-      // frame of this animation — recomputing a backdrop-filter blur against a resizing
-      // region is compositor-hostile and is what makes the collapse feel janky. Swap to a
-      // flat background for the animation's duration and restore the blur once at rest.
+      // .dock resizes every frame of this animation (width: max-content), and a
+      // backdrop-filter blur recomputing against a resizing region is what makes it
+      // feel janky. Swap to a flat background for the animation, restore blur at rest.
       panel.classList.add("dock-collapsing");
       const anim = dockCollapsible.animate(
         [
@@ -228,8 +212,7 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
     collapseBtn.setAttribute("aria-label", collapsed ? "Expand controls" : "Collapse controls");
     collapseDown?.classList.toggle("icon-hidden", collapsed);
     collapseUp?.classList.toggle("icon-hidden", !collapsed);
-    // The year field (and its error tooltip) is inside the part that just
-    // collapsed away — nothing left for the warning to point at.
+    // The year field just collapsed away, so there's nothing left for the warning to point at.
     if (collapsed) clearYearError();
   });
 
