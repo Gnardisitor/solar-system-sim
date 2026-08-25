@@ -5,6 +5,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { SMAAPass } from "three/examples/jsm/postprocessing/SMAAPass.js";
 import type { Vec3 } from "./physics";
 import {
   createAtmosphereMaterial,
@@ -240,10 +241,12 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   );
   mixPass.needsSwap = true;
 
+  const smaaPass = new SMAAPass();
   const outputPass = new OutputPass();
   const finalComposer = new EffectComposer(renderer);
   finalComposer.addPass(renderScene);
   finalComposer.addPass(mixPass);
+  finalComposer.addPass(smaaPass);
   finalComposer.addPass(outputPass);
 
   function resize(): void {
