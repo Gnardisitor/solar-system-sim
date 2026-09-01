@@ -163,6 +163,7 @@ async function main(): Promise<void> {
   });
 
   await loadYear(panel.initialYear);
+  await scene.compile();
   loading?.classList.add("hidden");
 
   let accumulatedSeconds = 0;

@@ -66,6 +66,8 @@ export interface SolarSystemScene {
   reset(): void;
   /** Registers onTick (fires once per rendered frame, before rendering). */
   start(onTick: (deltaSeconds: number) => void): void;
+  /** Compiles scene shaders off the main thread where the browser supports it. Call before start(). */
+  compile(): Promise<void>;
   /** While playing, frames render continuously. While paused, the loop stops and frames render on demand. */
   setPlaying(playing: boolean): void;
   /** Stops the render loop and releases the renderer, textures, and listeners. */
@@ -277,12 +279,12 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
         spec.textureUrl,
         () => {
           pendingTextures--;
-          queueRender();
+          if (pendingTextures === 0) queueRender(); // one frame once every texture has landed
         },
         undefined,
         () => {
           pendingTextures--;
-          queueRender();
+          if (pendingTextures === 0) queueRender();
         },
       );
       pendingTextures++;
@@ -391,6 +393,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   function reset(): void {
     for (const body of bodies) disposeBody(body);
     bodies.length = 0;
+    pendingTextures = 0;
     sunFacingMaterials.length = 0;
     // Keep only the scene-creation entries; body-owned ones get re-pushed by addBody.
     timeUniformMaterials.length = 2; // nebula + starfield
@@ -430,9 +433,9 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     looping = true;
     renderer.setAnimationLoop(() => {
       renderFrame(clock.getDelta());
-      // Once paused with no textures in flight, stop rendering entirely: an idle
-      // page costs nothing, and continuous rendering never lets the main thread rest.
-      if (!playing && pendingTextures === 0) {
+      // Once paused, stop rendering entirely: an idle page costs nothing, and
+      // continuous rendering never lets the main thread rest.
+      if (!playing) {
         looping = false;
         renderer.setAnimationLoop(null);
       }
@@ -461,6 +464,13 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     // Pausing stops the loop on the frame after the final state is drawn.
   }
 
+  async function compile(): Promise<void> {
+    // Compiles scene materials on the driver's threads where KHR_parallel_shader_compile
+    // exists; three falls back to sync compilation otherwise. Postprocessing passes
+    // (bloom, SMAA, mix) still compile on their first render.
+    await renderer.compileAsync(scene, camera);
+  }
+
   function dispose(): void {
     renderer.setAnimationLoop(null);
     onTick = null;
@@ -482,5 +492,5 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     renderer.dispose();
   }
 
-  return { addBody, setPositions, reset, start, setPlaying, dispose };
+  return { addBody, setPositions, reset, start, compile, setPlaying, dispose };
 }
