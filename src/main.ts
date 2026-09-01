@@ -101,6 +101,18 @@ function formatDate(date: Date): string {
   return `${day}-${month}-${date.getUTCFullYear()} UTC`;
 }
 
+/** Turns the loading overlay into an error state with a retry, instead of stranding the user on an eternal spinner. */
+function showLoadError(): void {
+  const loading = document.getElementById("loading");
+  if (!loading) return;
+  loading.classList.remove("hidden");
+  loading.setAttribute("role", "alert");
+  loading.innerHTML = `
+    <p>Couldn't load the simulation</p>
+    <button type="button" id="retry-btn" class="text-btn">Retry</button>`;
+  loading.querySelector<HTMLButtonElement>("#retry-btn")?.addEventListener("click", () => location.reload());
+}
+
 async function main(): Promise<void> {
   const canvas = document.getElementById("canvas");
   if (!canvas) throw new Error("Missing #canvas element");
@@ -144,7 +156,8 @@ async function main(): Promise<void> {
 
   const panel = createControlsPanel({
     onYearChange: (year) => {
-      void loadYear(year);
+      // A failed re-load (bad year data, offline) must not leave a broken scene silently running.
+      loadYear(year).catch(showLoadError);
     },
   });
 
@@ -170,4 +183,6 @@ async function main(): Promise<void> {
   });
 }
 
-void main();
+// Every failure path (missing canvas, fetch failure, bad ephemeris data) lands here, so the
+// loading overlay always resolves to either the simulation or a visible error state.
+main().catch(showLoadError);

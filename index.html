@@ -2,12 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Solar System Sim</title>
     <meta name="description" content="An interactive N-body solar system simulation rendered with Three.js and a WebAssembly physics engine.">
     <link rel="stylesheet" href="./css/tokens.css">
     <link rel="stylesheet" href="./css/interactive.css">
     <link rel="icon" href="./icons/favicon.ico" sizes="16x16">
     <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
+    <!-- Critical-path preloads: api.json and the fonts below are otherwise discovered
+         only after the JS bundle downloads and evaluates (api.json via fetch() in
+         main.ts, fonts via CSSOM matching), adding a full serial round trip to first
+         frame. Preloading starts them at HTML parse time instead. Fonts always need
+         crossorigin (fetched in CORS mode even same-origin). The WASM binary is
+         discovered by the Emscripten glue under a hashed name, so it can't be
+         preloaded statically; it's small (25 KB) and fetches in parallel once the
+         bundle is executing. -->
+    <link rel="preload" href="./api.json" as="fetch" fetchpriority="high">
+    <link rel="preload" href="./fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="./fonts/geist-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body>
     <a id="info-link" class="icon-btn corner-btn" href="about.html" title="About this project" aria-label="About this project">

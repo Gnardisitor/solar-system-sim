@@ -1,8 +1,10 @@
-// Renders documentation.md to static public/documentation.html at build time —
-// math (KaTeX) and code highlighting are baked into the HTML here instead of being
-// parsed/typeset in the browser on every visit. Runs via the predev/prebuild npm
-// lifecycle hooks (see package.json), so both `npm run dev` and `npm run build` always
-// serve the current markdown.
+// Renders documentation.md and inlines the result into about.html at build time —
+// math (KaTeX) and code highlighting are baked into the page here instead of being
+// parsed/typeset in the browser, and the page itself needs no runtime fetch: the
+// content ships inside the HTML, so first paint is the finished article (no
+// "Loading..." flash, no content-injection CLS, no failure mode if a fetch dies).
+// Runs via the predev/prebuild npm lifecycle hooks (see package.json), so both
+// `npm run dev` and `npm run build` always serve the current markdown.
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,7 +18,12 @@ import rehypeStringify from "rehype-stringify";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = path.join(root, "documentation.md");
-const output = path.join(root, "public/documentation.html");
+const target = path.join(root, "about.html");
+
+// about.html carries these markers around the generated block; everything between
+// them is replaced on each run, so the script stays idempotent.
+const START_MARKER = "<!-- docs:content:start -->";
+const END_MARKER = "<!-- docs:content:end -->";
 
 const markdown = await readFile(source, "utf8");
 
@@ -29,5 +36,17 @@ const file = await unified()
   .use(rehypeStringify)
   .process(markdown);
 
-await writeFile(output, String(file));
-console.log(`Built ${path.relative(root, output)} from ${path.relative(root, source)}`);
+const rendered = String(file).trim();
+
+const page = await readFile(target, "utf8");
+const startIndex = page.indexOf(START_MARKER);
+const endIndex = page.indexOf(END_MARKER);
+if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+  throw new Error(`${path.relative(root, target)} is missing the ${START_MARKER} / ${END_MARKER} markers`);
+}
+
+await writeFile(
+  target,
+  page.slice(0, startIndex + START_MARKER.length) + "\n" + rendered + "\n" + page.slice(endIndex),
+);
+console.log(`Inlined ${path.relative(root, source)} into ${path.relative(root, target)}`);
