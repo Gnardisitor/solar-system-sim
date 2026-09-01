@@ -2,9 +2,9 @@
 
 - This **N-body simulation** of the Solar System is built using **[Three.js](https://threejs.org/)** and **[Emscripten](https://emscripten.org/)**;
 
-- Algorithms written in **C** for speed and compiled using **Emscripten** to be used in JavasScript;
+- Algorithms written in **C** for speed and compiled using **Emscripten** to be used in JavaScript;
 
-- Graphics programmed using **Three.js** in **JavaScript** to be more immersive and interactve;
+- Graphics programmed using **Three.js** in **JavaScript** to be more immersive and interactive;
 
 - Cached responses from **[JPL Horizons](https://ssd.jpl.nasa.gov/horizons/)** into a JSON using a **C program** for **blazing fast loading times**;
 
@@ -18,11 +18,11 @@ There are 5 controls in total to learn:
 
 - The simulation method is the algorithm used behind the scene. Euler is the least accurate, Verlet is in the middle, and RK4 is the most accurate, but does not work well for large steps;
 
-- The year refers to the initial year of the simulation, which determines the initial positions of all the planets. Pick a year between 1750 and 2050, and press the set;
+- The year refers to the initial year of the simulation, which determines the initial positions of all the planets. Pick a year between 1750 and 2050, and press Set;
 
-- The days/step slider determines the step size, so the amount of time the is being elapsed per step; the bigger the faster and less precise the simulation gets;
+- The days/step slider determines the step size, so the amount of time elapsed per step; the bigger the faster and less precise the simulation gets;
 
-- The sec/step slider determines the real time in between steps. The less seconds betweens steps make the animation smoother and run faster, but is more demanding;
+- The sec/step slider determines the real time in between steps. Fewer seconds between steps makes the animation smoother and run faster, but is more demanding;
 
 - The play/pause button allows to play or pause the entire simulation;
 
@@ -36,7 +36,7 @@ The date shown next to the play/pause button is the current date of the simulati
 
 This initially began as a final project for a Python class in the final session of CEGEP in early 2024. I learned all the physics behind a basic N-body simulation while also learning to program in Python for the first time. In the end, I managed to make a simple **[Python program](https://github.com/Gnardisitor/N-Body-Simulation)** using matplotlib for the UI and a **[notebook using Google Collab](https://colab.research.google.com/drive/1kasJLBFC4tWsAuZxHatzqgjq6hcaKB3x?usp=sharing)**. However, I was never fully satisfied with it since the graphics were very barebones, I could not get a nice animated version and could only get a final graph, and matplotlib could not handle this many points in a 3D graph, crawling to an unusable pace. And the biggest issue was Python itself, since even with using libraries like numpy to accelerate matrix calculations, it still is incredibly slow to compute and uses way too much memory, which made it impossible to ever compute a very large simulation.
 
-After my first year of university, I had learned many things, especially in my Linux, Bash, and C class. I wanted to experiment more with C, and I managed to port all the algorthms from the Python version of the code into C. I was immediately impressed by the speed of this port, with it being able to do very large simulations nearly instantaneously. I knew this was my best way to make my final idea of the project come true. So I continued working on it, making a **[repository on Github](https://github.com/Gnardisitor/N-Body)**, but continued to run into an issue with making a frontend in C. I tried learning OpenGL or other libraries, but had a lot of trouble getting anything to work. I also wanted if possible to make it into a website so that anyone could access it without building an application, so I looked into WebAssembly. It seemed very interesting, and I knew about Three.js for 3D graphics in JavaScript, so I knew that this was possible. After a lot of work, learning Three.js, Emscripten, C, and much more, I managed to make this. While the positions are accurate, the sizes and rotation speeds of the bodies is only done to make the simulation more immersive and are not accurate. The next step for this project is to learn how to convert C arrays into a JavaScript array and make a non-interactive version of the simulation that is built solely for speed and gives a usable JSON file with all the positions. I hope you enjoy this project!
+After my first year of university, I had learned many things, especially in my Linux, Bash, and C class. I wanted to experiment more with C, and I managed to port all the algorithms from the Python version of the code into C. I was immediately impressed by the speed of this port, with it being able to do very large simulations nearly instantaneously. I knew this was my best way to make my final idea of the project come true. So I continued working on it, making a **[repository on Github](https://github.com/Gnardisitor/N-Body)**, but continued to run into an issue with making a frontend in C. I tried learning OpenGL or other libraries, but had a lot of trouble getting anything to work. I also wanted if possible to make it into a website so that anyone could access it without building an application, so I looked into WebAssembly. It seemed very interesting, and I knew about Three.js for 3D graphics in JavaScript, so I knew that this was possible. After a lot of work, learning Three.js, Emscripten, C, and much more, I managed to make this. While the positions are accurate, the sizes and rotation speeds of the bodies is only done to make the simulation more immersive and are not accurate. The next step for this project is to learn how to convert C arrays into a JavaScript array and make a non-interactive version of the simulation that is built solely for speed and gives a usable JSON file with all the positions. I hope you enjoy this project!
 
 ---
 

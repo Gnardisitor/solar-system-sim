@@ -9,14 +9,8 @@
     <link rel="stylesheet" href="./css/interactive.css">
     <link rel="icon" href="./icons/favicon.ico" sizes="16x16">
     <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
-    <!-- Critical-path preloads: api.json and the fonts below are otherwise discovered
-         only after the JS bundle downloads and evaluates (api.json via fetch() in
-         main.ts, fonts via CSSOM matching), adding a full serial round trip to first
-         frame. Preloading starts them at HTML parse time instead. Fonts always need
-         crossorigin (fetched in CORS mode even same-origin). The WASM binary is
-         discovered by the Emscripten glue under a hashed name, so it can't be
-         preloaded statically; it's small (25 KB) and fetches in parallel once the
-         bundle is executing. -->
+    <!-- Starts api.json and the fonts at parse time; they would otherwise only be
+         discovered after the JS bundle downloads and evaluates. -->
     <link rel="preload" href="./api.json" as="fetch" fetchpriority="high">
     <link rel="preload" href="./fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="./fonts/geist-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -85,12 +79,8 @@
         </button>
     </div>
 
-    <!-- Positioned via JS (position: fixed, computed from #yearInput's real
-         screen position) and deliberately kept outside #controls: .dock's
-         collapse animation requires overflow: hidden on .dock-collapsible /
-         .dock-collapsible-inner, which would silently clip any descendant
-         tooltip popping up above its anchor, and no CSS can exempt one
-         descendant from an ancestor's overflow: hidden. -->
+    <!-- Kept outside #controls: .dock-collapsible's overflow: hidden (needed for
+         the collapse animation) would clip this tooltip above its anchor. -->
     <p id="yearError" class="year-error" role="alert"></p>
 
     <script type="module" src="./src/main.ts"></script>

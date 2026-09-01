@@ -1,10 +1,6 @@
-// Renders documentation.md and inlines the result into about.html at build time —
-// math (KaTeX) and code highlighting are baked into the page here instead of being
-// parsed/typeset in the browser, and the page itself needs no runtime fetch: the
-// content ships inside the HTML, so first paint is the finished article (no
-// "Loading..." flash, no content-injection CLS, no failure mode if a fetch dies).
-// Runs via the predev/prebuild npm lifecycle hooks (see package.json), so both
-// `npm run dev` and `npm run build` always serve the current markdown.
+// Renders documentation.md and inlines the result into about.html between the
+// docs:content markers, so the page ships its full content with no runtime fetch.
+// Runs via the predev/prebuild hooks (see package.json).
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

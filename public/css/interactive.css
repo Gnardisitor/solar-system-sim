@@ -66,8 +66,7 @@ body {
   }
 }
 
-/* Glass to match .dock below — the two floating controls read as one system
-   rather than two different button styles hovering over the scene. */
+/* Glass matching .dock, so the two floating controls read as one system. */
 .corner-btn {
   position: fixed;
   top: 16px;
@@ -104,20 +103,11 @@ body {
 
 /* Dock */
 
-/* width: max-content (not the default shrink-to-fit) is load-bearing here.
-   .dock centers via left: 50% + transform: translateX(-50%), the standard
-   trick for a fixed-position, content-sized, centered box. But for a
-   width:auto fixed element with only `left` set (no `right`), browsers
-   resolve shrink-to-fit's "available width" as the space from that 50%
-   offset to the viewport's far edge — exactly half the viewport — and
-   silently clamp to it, independent of max-width. That's what actually
-   caused controls to go missing at "specific lengths": the dock could
-   never use more than half the window's width no matter which wrap
-   breakpoint was chosen, so any content wider than that was cut off well
-   before any breakpoint logic even ran. width: max-content sizes the box
-   to its true content width instead, leaving max-width below as the only
-   real constraint — flex-wrap then only engages exactly when content
-   genuinely doesn't fit, at any window size, with no gap to fall into. */
+/* width: max-content is load-bearing. With shrink-to-fit, browsers resolve the
+   available width of a fixed element with only `left` set as the space from the
+   50% offset to the viewport edge (half the window) and clamp to it, cutting
+   wide content off. max-content sizes to true content width, so max-width below
+   is the only constraint and flex-wrap engages exactly when content doesn't fit. */
 .dock {
   position: fixed;
   bottom: 20px;
@@ -163,11 +153,8 @@ body {
   -webkit-backdrop-filter: none;
 }
 
-/* Purely cosmetic: hides the group dividers once they'd otherwise sit at
-   odd spots mid-wrap. Nothing structural depends on this width — get it
-   wrong and a divider looks slightly out of place, nothing goes off-screen,
-   since wrapping itself is content-driven (see .dock above), not gated by
-   this breakpoint. */
+/* Cosmetic: hides dividers that would sit at odd spots mid-wrap. Wrapping is
+   content-driven (see .dock above), not gated by this breakpoint. */
 @media (max-width: 640px) {
   .dock-divider {
     display: none;
@@ -309,14 +296,9 @@ body {
   border-color: var(--danger);
 }
 
-/* Floating tooltip, not inline content: an inline error would reflow the
-   dock's single-row layout depending on message length, and after today's
-   round of reflow-triggered bugs this deliberately can't touch layout at
-   all. position: fixed with coordinates computed in JS from #yearInput's
-   real screen position (controlsPanel.ts) — it lives outside #controls
-   entirely, so .dock-collapsible's overflow: hidden (needed for the
-   collapse animation) can never clip it, which is what silently ate the
-   message text while still showing the border and arrow poking out. */
+/* Floating tooltip: an inline error would reflow the dock's row. Positioned
+   from #yearInput's rect in controlsPanel.ts, and kept outside #controls so
+   .dock-collapsible's overflow: hidden can't clip it. */
 .year-error {
   position: fixed;
   z-index: 30;
@@ -381,23 +363,14 @@ body {
   flex-shrink: 0;
 }
 
-/* Collapsed state: shrink to a playback-only pill. The transition itself is
-   WAAPI-driven from controlsPanel.ts using a FLIP animation: it measures the
-   real rendered size before and after the class toggle (not a guessed
-   "natural" size from clearing constraints on the live element, which is
-   still subject to flex negotiation with its siblings) and animates between
-   those two observed values. It clears its inline override the instant the
-   animation finishes, so the resting state only ever depends on the two
-   rules below: exactly 0 when collapsed, completely unconstrained when not
-   — never a cached number that could go stale after a resize. The inner
-   content fades out faster than the box shrinks so the squeeze itself is
-   never seen, only a clean dissolve. */
+/* Collapsed state: shrink to a playback-only pill. The transition is a FLIP
+   animation from controlsPanel.ts: it measures the real rendered size before
+   and after the toggle, animates between the two values, then clears the
+   inline override so the resting state only depends on the rules below. */
 
 .dock-collapsible {
-  /* Must be able to shrink: when a row is too narrow for this box's
-     natural content width, the flex algorithm needs to be able to assign
-     it a smaller, definite width so its own children can wrap within that
-     — flex-shrink: 0 would let it overflow the dock's edge instead. */
+  /* Shrinkable so children can wrap within an assigned width;
+     flex-shrink: 0 would overflow the dock's edge. */
   flex-shrink: 1;
   min-width: 0;
   overflow: hidden;

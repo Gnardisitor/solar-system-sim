@@ -41,9 +41,8 @@ header {
   }
 }
 
-/* A plain text+icon link, not a bordered pill — the arrow nudges toward the
-   direction it points and the underline draws in, rather than a whole button
-   surface lighting up for a simple "go back". */
+/* Plain text+icon link: the arrow nudges toward its direction and the
+   underline draws in, rather than a button surface lighting up. */
 #back-link {
   display: inline-flex;
   align-items: center;

@@ -172,9 +172,8 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
   };
 
   collapseBtn.addEventListener("click", () => {
-    // FLIP: measure the real rendered size before and after toggling, then animate
-    // between those observed values. Guessing the "natural" size via scrollWidth
-    // instead was tried and broke on narrow viewports, since that size still depends
+    // FLIP: animate between the real rendered sizes before and after the toggle.
+    // A scrollWidth guess breaks on narrow viewports, since that size still depends
     // on flex negotiation with the collapse state being measured.
     if (dockCollapsibleInner && !reduceMotion) {
       for (const existing of dockCollapsible.getAnimations()) existing.cancel();
@@ -187,9 +186,8 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
       void dockCollapsible.offsetHeight;
       const after = dockCollapsible.getBoundingClientRect();
 
-      // .dock resizes every frame of this animation (width: max-content), and a
-      // backdrop-filter blur recomputing against a resizing region is what makes it
-      // feel janky. Swap to a flat background for the animation, restore blur at rest.
+      // A backdrop-filter blur recomputing against a resizing region is janky.
+      // Swap to a flat background for the animation, restore blur at rest.
       panel.classList.add("dock-collapsing");
       const anim = dockCollapsible.animate(
         [

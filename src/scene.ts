@@ -164,7 +164,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   timeUniformMaterials.push(starfield.material as THREE.ShaderMaterial);
   nonBloomObjects.push(starfield);
 
-  // decay: 0 is deliberate: real inverse-square falloff would leave Neptune ~5600x
+  // decay: 0 is deliberate; real inverse-square falloff would leave Neptune ~5600x
   // dimmer than Mercury and effectively invisible.
   const sunLight = new THREE.PointLight(0xfff2d0, 1.3, 0, 0);
   const ambientLight = new THREE.AmbientLight(0x404040, 0.5);

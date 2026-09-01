@@ -101,7 +101,7 @@ function formatDate(date: Date): string {
   return `${day}-${month}-${date.getUTCFullYear()} UTC`;
 }
 
-/** Turns the loading overlay into an error state with a retry, instead of stranding the user on an eternal spinner. */
+/** Turns the loading overlay into an error state with a retry button. */
 function showLoadError(): void {
   const loading = document.getElementById("loading");
   if (!loading) return;
@@ -156,7 +156,7 @@ async function main(): Promise<void> {
 
   const panel = createControlsPanel({
     onYearChange: (year) => {
-      // A failed re-load (bad year data, offline) must not leave a broken scene silently running.
+      // A failed reload must not leave a broken scene silently running.
       loadYear(year).catch(showLoadError);
     },
   });
@@ -183,6 +183,4 @@ async function main(): Promise<void> {
   });
 }
 
-// Every failure path (missing canvas, fetch failure, bad ephemeris data) lands here, so the
-// loading overlay always resolves to either the simulation or a visible error state.
 main().catch(showLoadError);
