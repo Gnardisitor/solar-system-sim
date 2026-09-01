@@ -23,6 +23,7 @@ export interface ControlsPanel {
 
 export interface ControlsPanelCallbacks {
   onYearChange: (year: number) => void;
+  onPlayChange: (running: boolean) => void;
 }
 
 export function createControlsPanel(callbacks: ControlsPanelCallbacks): ControlsPanel {
@@ -73,8 +74,10 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
 
   function moveIndicatorTo(btn: HTMLButtonElement): void {
     if (!methodIndicator) return;
-    methodIndicator.style.left = `${btn.offsetLeft}px`;
+    // transform, not left/width: sliding via transform stays composited. The base
+    // left is 0 (see .method-indicator), so translateX is the button's own offset.
     methodIndicator.style.width = `${btn.offsetWidth}px`;
+    methodIndicator.style.transform = `translateX(${btn.offsetLeft}px)`;
   }
 
   if (initialMethodBtn) moveIndicatorTo(initialMethodBtn);
@@ -124,6 +127,7 @@ export function createControlsPanel(callbacks: ControlsPanelCallbacks): Controls
     runBtn.setAttribute("aria-label", runBtn.title);
     runPlayIcon?.classList.toggle("icon-hidden", isRunning);
     runPauseIcon?.classList.toggle("icon-hidden", !isRunning);
+    callbacks.onPlayChange(isRunning);
   };
 
   // #yearError lives outside #controls (see index.html) so .dock-collapsible's

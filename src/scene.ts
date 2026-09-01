@@ -21,6 +21,9 @@ const ORBIT_TRAIL_CAPACITY = 3000;
 const MAX_PIXEL_RATIO = 2;
 const BACKDROP_RADIUS = 220;
 const STAR_COUNT = 7000;
+// Bloom is a blur; running its mip chain at half resolution is imperceptible and
+// cuts most of its fragment work.
+const BLOOM_RESOLUTION_SCALE = 0.5;
 
 export interface RingSpec {
   innerScale: number;
@@ -61,8 +64,10 @@ export interface SolarSystemScene {
   setPositions(updates: readonly BodyUpdate[]): void;
   /** Disposes every body's geometry/material/texture and clears the scene, ready for addBody again. */
   reset(): void;
-  /** Starts the render loop. onTick fires once per frame, before rendering, so callers can drive a physics step. */
+  /** Registers onTick (fires once per rendered frame, before rendering). */
   start(onTick: (deltaSeconds: number) => void): void;
+  /** While playing, frames render continuously. While paused, the loop stops and frames render on demand. */
+  setPlaying(playing: boolean): void;
   /** Stops the render loop and releases the renderer, textures, and listeners. */
   dispose(): void;
 }
@@ -150,6 +155,8 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
   const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
   camera.position.z = 5;
   const controls = new OrbitControls(camera, renderer.domElement);
+  // Paused pages only render when the camera actually moves.
+  controls.addEventListener("change", queueRender);
 
   const scene = new THREE.Scene();
 
@@ -199,7 +206,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
 
   const renderScene = new RenderPass(scene, camera);
 
-  const bloomPass = new UnrealBloomPass(sizeVector(), 0.5, 0.35, 0.0);
+  const bloomPass = new UnrealBloomPass(sizeVector().multiplyScalar(BLOOM_RESOLUTION_SCALE), 0.5, 0.35, 0.0);
   const bloomComposer = new EffectComposer(renderer);
   bloomComposer.renderToScreen = false;
   bloomComposer.addPass(renderScene);
@@ -247,7 +254,8 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     camera.updateProjectionMatrix();
     bloomComposer.setSize(width, height);
     finalComposer.setSize(width, height);
-    bloomPass.setSize(width, height);
+    bloomPass.setSize(width * BLOOM_RESOLUTION_SCALE, height * BLOOM_RESOLUTION_SCALE);
+    queueRender();
   }
   window.addEventListener("resize", resize);
 
@@ -265,7 +273,19 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
       timeUniformMaterials.push(sunMaterial);
     } else {
       if (!spec.textureUrl) throw new Error(`Missing textureUrl for body "${spec.name}"`);
-      const texture = textureLoader.load(spec.textureUrl);
+      const texture = textureLoader.load(
+        spec.textureUrl,
+        () => {
+          pendingTextures--;
+          queueRender();
+        },
+        undefined,
+        () => {
+          pendingTextures--;
+          queueRender();
+        },
+      );
+      pendingTextures++;
       material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9, metalness: 0.0 });
       mesh = new THREE.Mesh(geometry, material);
       nonBloomObjects.push(mesh);
@@ -344,6 +364,7 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
         }
       }
     }
+    queueRender();
   }
 
   function disposeShell(shell: Shell | null): void {
@@ -376,31 +397,75 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     nonBloomObjects.length = 2; // nebula + starfield
   }
 
-  function start(onTick: (deltaSeconds: number) => void): void {
+  let onTick: ((deltaSeconds: number) => void) | null = null;
+  let playing = false;
+  let looping = false;
+  let renderQueued = false;
+  let pendingTextures = 0;
+  let elapsed = 0;
+
+  function renderFrame(delta: number): void {
+    elapsed += delta;
+    onTick?.(delta);
+    controls.update();
+
+    // Skybox trick: keep the backdrop centered on the camera so it never shows parallax.
+    nebula.position.copy(camera.position);
+    starfield.position.copy(camera.position);
+
+    for (const material of timeUniformMaterials) {
+      const time = material.uniforms["time"];
+      if (time) time.value = elapsed;
+    }
+
+    darkenNonBloomed();
+    bloomComposer.render();
+    restoreMaterial();
+    finalComposer.render();
+  }
+
+  function startLoop(): void {
+    if (looping) return;
+    clock.getDelta(); // discard time spent paused, so the first frame doesn't see a huge delta
+    looping = true;
     renderer.setAnimationLoop(() => {
-      const delta = clock.getDelta();
-      const elapsed = clock.getElapsedTime();
-      onTick(delta);
-      controls.update();
-
-      // Skybox trick: keep the backdrop centered on the camera so it never shows parallax.
-      nebula.position.copy(camera.position);
-      starfield.position.copy(camera.position);
-
-      for (const material of timeUniformMaterials) {
-        const time = material.uniforms["time"];
-        if (time) time.value = elapsed;
+      renderFrame(clock.getDelta());
+      // Once paused with no textures in flight, stop rendering entirely: an idle
+      // page costs nothing, and continuous rendering never lets the main thread rest.
+      if (!playing && pendingTextures === 0) {
+        looping = false;
+        renderer.setAnimationLoop(null);
       }
-
-      darkenNonBloomed();
-      bloomComposer.render();
-      restoreMaterial();
-      finalComposer.render();
     });
+  }
+
+  /** One frame when the loop is stopped; coalesced to one render per animation frame. */
+  function queueRender(): void {
+    if (looping || renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(() => {
+      renderQueued = false;
+      renderFrame(0);
+    });
+  }
+
+  function start(callback: (deltaSeconds: number) => void): void {
+    onTick = callback;
+    startLoop();
+  }
+
+  function setPlaying(value: boolean): void {
+    if (playing === value) return;
+    playing = value;
+    if (value) startLoop();
+    // Pausing stops the loop on the frame after the final state is drawn.
   }
 
   function dispose(): void {
     renderer.setAnimationLoop(null);
+    onTick = null;
+    playing = false;
+    looping = false;
     window.removeEventListener("resize", resize);
     reset();
     scene.remove(nebula, starfield);
@@ -417,5 +482,5 @@ export function createSolarSystemScene(canvas: HTMLElement): SolarSystemScene {
     renderer.dispose();
   }
 
-  return { addBody, setPositions, reset, start, dispose };
+  return { addBody, setPositions, reset, start, setPlaying, dispose };
 }

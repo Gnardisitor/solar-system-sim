@@ -159,6 +159,7 @@ async function main(): Promise<void> {
       // A failed reload must not leave a broken scene silently running.
       loadYear(year).catch(showLoadError);
     },
+    onPlayChange: (running) => scene.setPlaying(running),
   });
 
   await loadYear(panel.initialYear);
